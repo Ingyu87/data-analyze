@@ -310,7 +310,44 @@ const App = () => {
 
     if (dataList.length === 1) {
       // 단일 데이터셋 분석
-      const d = dataList[0].data;
+      const data = dataList[0].data;
+      
+      // 멀티 시리즈 데이터인 경우
+      if (data.type === 'multi-series' && data.series) {
+        // 각 시리즈를 개별적으로 분석
+        const seriesResults = data.series.map(series => {
+          const seriesData = series.data.map(p => ({ label: p.year, value: p.value }));
+          const { slope, nextVal, analysis, stats } = analyzeSingleDataset(seriesData);
+          return {
+            name: series.name,
+            slope,
+            nextVal,
+            analysis,
+            stats,
+            data: seriesData
+          };
+        });
+        
+        setAnalysisResult({
+          type: 'multi-series',
+          title: data.name,
+          xLabel: data.xLabel || '연도',
+          yLabel: data.yLabel || '값',
+          series: data.series,
+          years: data.years,
+          seriesResults: seriesResults,
+          dataset: data.series.flatMap(s => s.data.map(p => ({ 
+            label: `${s.name} (${p.year})`, 
+            value: p.value, 
+            originalLabel: s.name 
+          })))
+        });
+        setView('result');
+        return;
+      }
+      
+      // 일반 단일 데이터셋
+      const d = data.data || data;
       const { slope, nextVal, analysis, stats } = analyzeSingleDataset(d);
       
       // 기본 설명 생성 (폴백)

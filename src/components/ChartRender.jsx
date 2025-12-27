@@ -315,6 +315,72 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
           if (onRenderingChange) onRenderingChange(false);
         });
         
+      } else if (data.type === 'multi-series') {
+        // 멀티 시리즈 그래프 (여러 지표를 하나의 그래프에 표시)
+        if (!data.series || data.series.length === 0) {
+          console.warn('멀티 시리즈 데이터 없음');
+          if (onRenderingChange) onRenderingChange(false);
+          return;
+        }
+
+        const years = data.years || [];
+        const colors = ['#c084fc', '#a855f7', '#9333ea', '#7e22ce', '#6b21a8', '#581c87', '#d946ef', '#ec4899', '#fbbf24', '#10b981'];
+        const traces = [];
+
+        for (let i = 0; i < data.series.length; i++) {
+          const series = data.series[i];
+          const seriesValues = years.map(year => {
+            const point = series.data.find(p => p.year === year);
+            return point ? point.value : null;
+          });
+
+          if (chartType === 'line') {
+            traces.push({
+              x: years,
+              y: seriesValues,
+              mode: 'lines+markers+text',
+              name: series.name,
+              line: { color: colors[i % colors.length], width: 3 },
+              marker: { size: 10, color: colors[i % colors.length] },
+              text: seriesValues.map(v => v !== null ? v.toLocaleString() : ''),
+              textposition: 'top center',
+              textfont: { size: 9, color: colors[i % colors.length] },
+              type: 'scatter',
+              hovertemplate: `<b>${series.name}</b><br>연도: %{x}<br>값: %{y:,.0f}<extra></extra>`
+            });
+          } else if (chartType === 'bar') {
+            traces.push({
+              x: years,
+              y: seriesValues,
+              type: 'bar',
+              name: series.name,
+              marker: { color: colors[i % colors.length] },
+              text: seriesValues.map(v => v !== null ? v.toLocaleString() : ''),
+              textposition: 'outside',
+              textfont: { size: 10, color: colors[i % colors.length] },
+              hovertemplate: `<b>${series.name}</b><br>연도: %{x}<br>값: %{y:,.0f}<extra></extra>`
+            });
+          }
+        }
+
+        console.log(`멀티 시리즈 차트 렌더링: ${traces.length}개 시리즈, ${years.length}개 연도, 타입: ${chartType}`);
+
+        Plotly.newPlot(div, traces, {
+          ...layout,
+          xaxis: { ...layout.xaxis, title: { text: data.xLabel || '연도', font: { size: 12, color: '#e9d5ff' } } },
+          yaxis: { ...layout.yaxis, title: { text: data.yLabel || '값', font: { size: 12, color: '#e9d5ff' } } },
+          title: { 
+            text: data.name || '데이터 시각화', 
+            font: { size: 16, color: '#fff' },
+            y: 0.95
+          }
+        }, config).then(() => {
+          console.log('멀티 시리즈 차트 렌더링 완료');
+          if (onRenderingChange) onRenderingChange(false);
+        }).catch((error) => {
+          console.error('Plotly 렌더링 오류:', error);
+          if (onRenderingChange) onRenderingChange(false);
+        });
       } else if (data.type === 'multi') {
         // 상관관계 산점도
         if (!data.dataset1 || !data.dataset2 || data.dataset1.length === 0 || data.dataset2.length === 0) {

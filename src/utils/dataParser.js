@@ -384,6 +384,75 @@ export const parseTextToData = (text, fileName) => {
       fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:200',message:'Time series parsing complete',data:{totalDataPoints:dataPoints.length,finalDataPoints:finalDataPoints.length,firstFew:finalDataPoints.slice(0,5),xLabel,yLabel,hasYearData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
       
+      // 멀티 시리즈 데이터인지 확인 (여러 카테고리가 있고 각각 시계열 데이터인 경우)
+      const seriesMap = new Map();
+      let allYears = new Set();
+      
+      // 카테고리별로 그룹화하고 연도 추출
+      for (const point of finalDataPoints) {
+        if (point.originalLabel) {
+          const category = point.originalLabel;
+          if (!seriesMap.has(category)) {
+            seriesMap.set(category, []);
+          }
+          
+          // 연도 추출 (label에서 또는 year 필드에서)
+          let year = null;
+          if (point.year) {
+            year = point.year;
+          } else if (point.label) {
+            const yearMatch = point.label.match(/\((\d{4})/);
+            if (yearMatch) {
+              year = yearMatch[1];
+            }
+          }
+          
+          if (year) {
+            allYears.add(year);
+            seriesMap.get(category).push({ year, value: point.value });
+          } else {
+            // 연도가 없으면 그냥 추가
+            seriesMap.get(category).push({ value: point.value, label: point.label });
+          }
+        }
+      }
+      
+      // 여러 시리즈가 있고 각각 연도 데이터가 있으면 멀티 시리즈로 변환
+      if (seriesMap.size > 1 && allYears.size > 0) {
+        const sortedYears = Array.from(allYears).sort((a, b) => parseInt(a) - parseInt(b));
+        const series = [];
+        
+        for (const [category, points] of seriesMap.entries()) {
+          // 연도별로 정렬
+          const yearPoints = points.filter(p => p.year);
+          if (yearPoints.length > 0) {
+            yearPoints.sort((a, b) => parseInt(a.year) - parseInt(b.year));
+            series.push({
+              name: category,
+              data: yearPoints.map(p => ({ year: p.year, value: p.value }))
+            });
+          }
+        }
+        
+        if (series.length > 1) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:410',message:'Multi-series detected',data:{seriesCount:series.length,seriesNames:series.map(s=>s.name),years:sortedYears},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+          // #endregion
+          
+          return {
+            success: true,
+            data: {
+              name: fileName,
+              type: 'multi-series',
+              xLabel: "연도",
+              yLabel: yLabel || "값",
+              series: series,
+              years: sortedYears
+            }
+          };
+        }
+      }
+      
       return {
         success: true,
         data: {

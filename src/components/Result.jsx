@@ -142,7 +142,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
         />
         
         {/* 그래프 축 설명 - 초등학생 눈높이 */}
-        {analysisResult.type === 'single' && analysisResult.dataset && analysisResult.dataset.length > 0 && (
+          {(analysisResult.type === 'single' || analysisResult.type === 'multi-series') && analysisResult.dataset && analysisResult.dataset.length > 0 && (
           <div className="mt-4 p-4 bg-purple-900/30 rounded-lg border border-purple-500/30">
             <h4 className="text-purple-200 font-bold mb-3 text-lg">📐 그래프 읽는 방법</h4>
             
