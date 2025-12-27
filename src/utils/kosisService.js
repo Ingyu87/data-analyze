@@ -34,8 +34,15 @@ export const searchKosisStatistics = async (query) => {
       // KOSIS API 응답 구조에 따라 파싱
       // 여러 가능한 구조 확인
       if (Array.isArray(result.data)) {
-        console.log('배열 형식 응답:', result.data.length, '개 항목');
-        return result.data;
+        // 배열 응답 - 오류 항목 필터링
+        const validResults = result.data.filter(item => {
+          // 오류 항목 제외
+          if (!item || typeof item !== 'object') return false;
+          if (item.err || item.error || item.errMsg) return false;
+          return true;
+        });
+        console.log('배열 형식 응답:', result.data.length, '개 항목 (유효:', validResults.length, '개)');
+        return validResults;
       } else if (result.data.RESULT) {
         const results = Array.isArray(result.data.RESULT) ? result.data.RESULT : [];
         console.log('RESULT 형식 응답:', results.length, '개 항목');

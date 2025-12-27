@@ -32,16 +32,16 @@ export default async function handler(req, res) {
       const encodedQuery = encodeURIComponent(searchQuery.trim());
       
       const searchUrls = [
-        // 방법 1: 키워드 검색 (가장 일반적인 방법)
+        // 방법 1: 통계표 목록 조회 (orgId 없이 - 전체 검색)
         `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&keyword=${encodedQuery}`,
-        // 방법 2: 통계표 목록 조회 (userStatsId 사용)
-        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&userStatsId=${encodedQuery}`,
-        // 방법 3: 통계표 검색 API
+        // 방법 2: 통계표 검색 API (statisticsSearch 사용)
         `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&keyword=${encodedQuery}`,
-        // 방법 4: 간단한 형식 (jsonVD 없음)
+        // 방법 3: 통계표 목록 조회 (jsonVD 없음)
         `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&keyword=${encodedQuery}`,
-        // 방법 5: XML 형식도 시도 (JSON으로 파싱 시도)
-        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=xml&keyword=${encodedQuery}`,
+        // 방법 4: 통계표 목록 조회 (userStatsId 사용 - 통계표 ID로 검색)
+        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&userStatsId=${encodedQuery}`,
+        // 방법 5: 통계표 목록 조회 (orgId=101 - 통계청)
+        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&orgId=101&keyword=${encodedQuery}`,
       ];
       
       let lastError = null;
@@ -74,11 +74,94 @@ export default async function handler(req, res) {
               }
               
               const data = JSON.parse(responseText);
-              console.log('KOSIS API 성공, 데이터 구조:', Object.keys(data));
+              console.log('KOSIS API 성공, 데이터 구조:', Array.isArray(data) ? `Array(${data.length})` : Object.keys(data));
               console.log('KOSIS API 전체 응답:', JSON.stringify(data).substring(0, 1000));
               
+              // 배열 응답인 경우 (오류 메시지 포함 가능)
+              if (Array.isArray(data)) {
+                // 첫 번째 요소가 오류인지 확인
+                if (data.length > 0 && data[0] && typeof data[0] === 'object') {
+                  const firstItem = data[0];
+                  // 오류 코드 확인
+                  if (firstItem.err || firstItem.errMsg || firstItem.error) {
+                    const errCode = firstItem.err || firstItem.error;
+                    const errMsg = firstItem.errMsg || firstItem.message || '알 수 없는 오류';
+                    console.error('KOSIS API 오류 응답:', errCode, errMsg);
+                    
+                    // 오류 코드별 처리
+                    if (errCode === '20' || errMsg.includes('필수') || errMsg.includes('누락')) {
+                      // 필수 파라미터 누락 - 다른 엔드포인트 시도
+                      lastError = new Error(`필수 파라미터 누락: ${errMsg}`);
+                      lastResponse = responseText;
+                      continue;
+                    } else if (errCode === '-200' || errCode === '-201' || errCode === '-202' || 
+                               errMsg.includes('인증') || errMsg.includes('API') || errMsg.includes('key')) {
+                      return res.status(401).json({
+                        success: false,
+                        error: 'KOSIS API 키 오류',
+                        message: 'API 키가 올바르지 않거나 만료되었습니다. KOSIS 공유서비스에서 키를 확인해주세요.',
+                        errCode: errCode,
+                        errMsg: errMsg
+                      });
+                    } else {
+                      // 다른 오류 - 마지막 시도가 아니면 계속
+                      lastError = new Error(`KOSIS API 오류 (${errCode}): ${errMsg}`);
+                      lastResponse = responseText;
+                      continue;
+                    }
+                  }
+                }
+                
+                // 오류가 아니면 데이터 반환
+                const validData = data.filter(item => !item.err && !item.error);
+                if (validData.length > 0) {
+                  return res.status(200).json({ 
+                    success: true, 
+                    data: validData,
+                    debug: {
+                      url: searchUrl.substring(0, 150),
+                      totalItems: data.length,
+                      validItems: validData.length
+                    }
+                  });
+                } else {
+                  // 모든 항목이 오류인 경우
+                  lastError = new Error('모든 응답 항목이 오류입니다');
+                  lastResponse = responseText;
+                  continue;
+                }
+              }
+              
+              // 객체 응답인 경우
               // 응답 코드 확인 (KOSIS API 오류 코드)
-              const retCode = data.RET_CODE || data.retCode || data.RetCode || data.code;
+              const retCode = data.RET_CODE || data.retCode || data.RetCode || data.code || data.err;
+              const errMsg = data.errMsg || data.message || data.error;
+              
+              // 오류 응답 확인
+              if (data.err || data.error || errMsg) {
+                const errCode = data.err || data.error || retCode;
+                console.error('KOSIS API 오류:', errCode, errMsg);
+                
+                if (errCode === '20' || errMsg?.includes('필수') || errMsg?.includes('누락')) {
+                  lastError = new Error(`필수 파라미터 누락: ${errMsg}`);
+                  lastResponse = responseText;
+                  continue;
+                } else if (errCode === '-200' || errCode === '-201' || errCode === '-202' || 
+                           errMsg?.includes('인증') || errMsg?.includes('API') || errMsg?.includes('key')) {
+                  return res.status(401).json({
+                    success: false,
+                    error: 'KOSIS API 키 오류',
+                    message: 'API 키가 올바르지 않거나 만료되었습니다. KOSIS 공유서비스에서 키를 확인해주세요.',
+                    errCode: errCode,
+                    errMsg: errMsg
+                  });
+                } else {
+                  lastError = new Error(`KOSIS API 오류 (${errCode}): ${errMsg}`);
+                  lastResponse = responseText;
+                  continue;
+                }
+              }
+              
               if (retCode === '-100' || retCode === '100' || retCode === '-1') {
                 console.log('KOSIS API: 검색결과 없음 또는 오류 코드:', retCode);
                 return res.status(200).json({ 
@@ -89,20 +172,7 @@ export default async function handler(req, res) {
                 });
               }
               
-              // API 키 오류 확인
-              if (retCode === '-200' || retCode === '-201' || retCode === '-202' || 
-                  responseText.includes('인증') || responseText.includes('API') || 
-                  responseText.includes('key') || responseText.includes('Key')) {
-                console.error('KOSIS API 키 오류:', retCode, responseText.substring(0, 200));
-                return res.status(401).json({
-                  success: false,
-                  error: 'KOSIS API 키 오류',
-                  message: 'API 키가 올바르지 않거나 만료되었습니다. KOSIS 공유서비스에서 키를 확인해주세요.',
-                  retCode: retCode
-                });
-              }
-              
-              // 응답 구조 확인 및 반환
+              // 정상 응답 반환
               return res.status(200).json({ 
                 success: true, 
                 data,
