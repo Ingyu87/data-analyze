@@ -7,17 +7,40 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
 
   // Lazy load Plotly
   useEffect(() => {
-    if (!plotlyLoaded && !Plotly) {
-      if (onRenderingChange) onRenderingChange(true);
-    }
+    if (plotlyLoaded && Plotly) return; // 이미 로드됨
+    
+    let cancelled = false;
+    if (onRenderingChange) onRenderingChange(true);
+    
     import('plotly.js').then((plotlyModule) => {
-      setPlotly(plotlyModule.default);
-      setPlotlyLoaded(true);
-      if (onRenderingChange && !data) onRenderingChange(false);
+      if (cancelled) return;
+      
+      // Plotly 모듈 구조 확인
+      let plotly = null;
+      if (plotlyModule.default) {
+        plotly = plotlyModule.default;
+      } else if (plotlyModule.newPlot) {
+        plotly = plotlyModule;
+      } else if (typeof plotlyModule === 'object' && plotlyModule.Plotly) {
+        plotly = plotlyModule.Plotly;
+      }
+      
+      if (plotly && typeof plotly.newPlot === 'function') {
+        setPlotly(plotly);
+        setPlotlyLoaded(true);
+        if (onRenderingChange && !data) onRenderingChange(false);
+      } else {
+        console.error('Plotly module structure invalid:', plotlyModule);
+        if (onRenderingChange) onRenderingChange(false);
+      }
     }).catch((error) => {
       console.error('Failed to load Plotly:', error);
       if (onRenderingChange) onRenderingChange(false);
     });
+    
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

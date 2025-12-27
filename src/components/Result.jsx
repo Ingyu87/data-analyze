@@ -154,12 +154,40 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
                 <strong className="text-yellow-300">세로축 (아래에서 위):</strong> {analysisResult.yLabel}
                 <span className="text-purple-300 ml-2">→ 각 항목의 크기나 수치를 나타내요</span>
               </p>
-              <p className="mt-3 text-purple-200">
-                💡 <strong>숫자의 의미:</strong> 그래프 위의 숫자는 각 항목의 실제 값을 보여줘요. 
-                {chartType === 'line' && ' 선이 올라가면 값이 커지고, 내려가면 값이 작아진다는 뜻이에요.'}
-                {chartType === 'bar' && ' 막대가 길수록 값이 크다는 뜻이에요.'}
-                {chartType === 'pie' && ' 원그래프에서 각 조각의 크기가 클수록 전체 중에서 차지하는 비율이 크다는 뜻이에요.'}
-              </p>
+              <div className="mt-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30">
+                <p className="text-yellow-200 font-bold mb-2">💡 숫자가 의미하는 것:</p>
+                <p className="text-purple-100 text-sm mb-2">
+                  그래프 위에 표시된 숫자는 <strong className="text-yellow-300">각 항목의 실제 값</strong>을 나타내요.
+                </p>
+                <ul className="text-purple-100 text-sm space-y-1 list-disc list-inside">
+                  {chartType === 'line' && (
+                    <>
+                      <li>선이 <strong className="text-green-300">위로 올라가면</strong> 숫자가 <strong className="text-green-300">커진다</strong>는 뜻이에요</li>
+                      <li>선이 <strong className="text-red-300">아래로 내려가면</strong> 숫자가 <strong className="text-red-300">작아진다</strong>는 뜻이에요</li>
+                      <li>예: 그래프에서 "2020년: 100"이라고 표시되면, 2020년의 값이 100이라는 뜻이에요</li>
+                    </>
+                  )}
+                  {chartType === 'bar' && (
+                    <>
+                      <li>막대가 <strong className="text-green-300">길수록</strong> 숫자가 <strong className="text-green-300">크다</strong>는 뜻이에요</li>
+                      <li>막대가 <strong className="text-red-300">짧을수록</strong> 숫자가 <strong className="text-red-300">작다</strong>는 뜻이에요</li>
+                      <li>예: 그래프에서 "서울: 500"이라고 표시되면, 서울의 값이 500이라는 뜻이에요</li>
+                    </>
+                  )}
+                  {chartType === 'pie' && (
+                    <>
+                      <li>각 조각의 크기가 <strong className="text-green-300">클수록</strong> 전체 중에서 차지하는 <strong className="text-green-300">비율이 크다</strong>는 뜻이에요</li>
+                      <li>예: 그래프에서 "사과: 30%"라고 표시되면, 전체 중에서 사과가 30%를 차지한다는 뜻이에요</li>
+                    </>
+                  )}
+                  {chartType === 'pictograph' && (
+                    <>
+                      <li>그림이 <strong className="text-green-300">많을수록</strong> 숫자가 <strong className="text-green-300">크다</strong>는 뜻이에요</li>
+                      <li>예: 그래프에서 "강아지: 5개"라고 표시되면, 강아지가 5마리라는 뜻이에요</li>
+                    </>
+                  )}
+                </ul>
+              </div>
               {analysisResult.dataset && analysisResult.dataset.length > 0 && (
                 <div className="mt-3 p-3 bg-purple-800/30 rounded border border-purple-500/20">
                   <p className="text-xs text-purple-200 mb-2"><strong>📊 데이터 예시:</strong></p>
@@ -499,13 +527,24 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
         />
       )}
 
-      {showReportWriter && (
+      {showReportWriter && analysisResult && (
         <div className="mt-6 w-full">
           <ReportWriter
             analysisResult={analysisResult}
             onBack={() => setShowReportWriter(false)}
             stagedFiles={stagedFiles}
           />
+        </div>
+      )}
+      {showReportWriter && !analysisResult && (
+        <div className="glass-panel rounded-xl p-6 mt-6">
+          <p className="text-red-400 text-center mb-4">데이터 분석 결과가 없습니다. 먼저 데이터를 분석해주세요.</p>
+          <button
+            onClick={() => setShowReportWriter(false)}
+            className="w-full bg-gray-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-gray-700 transition"
+          >
+            돌아가기
+          </button>
         </div>
       )}
 
