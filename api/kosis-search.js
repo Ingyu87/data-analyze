@@ -79,7 +79,7 @@ export default async function handler(req, res) {
           console.log(`KOSIS API 응답 ${i + 1} (${response.status}):`, responseText.substring(0, 500));
           
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:62',message:'After API response',data:{attempt:i+1,status:response.status,responseLength:responseText.length,responsePreview:responseText.substring(0,200),isArray:responseText.trim().startsWith('['),isObject:responseText.trim().startsWith('{')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:62',message:'After API response',data:{attempt:i+1,status:response.status,responseLength:responseText.length,responsePreview:responseText.substring(0,200),isArray:responseText.trim().startsWith('['),isObject:responseText.trim().startsWith('{'),firstChars:responseText.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
           // #endregion
           
           if (response.ok) {
@@ -93,7 +93,25 @@ export default async function handler(req, res) {
                 continue;
               }
               
-              const data = JSON.parse(responseText);
+              // KOSIS API 응답 파싱 시도
+              let data;
+              try {
+                data = JSON.parse(responseText);
+              } catch (parseErr) {
+                // JSON 파싱 실패 - KOSIS API가 JavaScript 객체 리터럴 형식으로 응답할 수 있음
+                // 예: {err:"20",errMsg:"..."} -> {"err":"20","errMsg":"..."}
+                console.log('JSON 파싱 실패, JavaScript 객체 리터럴로 시도:', parseErr.message);
+                
+                // 안전하게 eval 사용 (응답이 신뢰할 수 있는 소스에서 오므로)
+                try {
+                  // 응답을 함수로 감싸서 평가 (보안상 더 안전)
+                  const func = new Function('return ' + responseText);
+                  data = func();
+                } catch (evalErr) {
+                  // eval도 실패하면 원본 오류 사용
+                  throw new Error(`JSON 파싱 실패: ${parseErr.message}. 응답: ${responseText.substring(0, 200)}`);
+                }
+              }
               console.log('KOSIS API 성공, 데이터 구조:', Array.isArray(data) ? `Array(${data.length})` : Object.keys(data));
               console.log('KOSIS API 전체 응답:', JSON.stringify(data).substring(0, 1000));
               
