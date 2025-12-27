@@ -275,22 +275,84 @@ export const parseTextToData = (text, fileName) => {
         return 0;
       });
       
+      // 카테고리별 데이터가 있고 연도가 여러 개인 경우, 각 카테고리별로 가장 최신 연도의 값만 사용
+      // 예: "계 (2022)", "계 (2023)", "계 (2024)" -> "계": 2024년 값만
+      const categoryMap = new Map();
+      const finalDataPoints = [];
+      
+      // 연도 데이터가 있는 경우, 각 카테고리별로 가장 최신 연도만 선택
+      const hasYearData = dataPoints.some(d => d.year);
+      if (hasYearData) {
+        // 연도별로 그룹화
+        for (const point of dataPoints) {
+          if (point.year && point.originalLabel) {
+            const key = point.originalLabel;
+            if (!categoryMap.has(key)) {
+              categoryMap.set(key, []);
+            }
+            categoryMap.get(key).push(point);
+          } else if (point.category && point.originalLabel) {
+            // 카테고리 데이터도 처리
+            const key = point.originalLabel;
+            if (!categoryMap.has(key)) {
+              categoryMap.set(key, []);
+            }
+            categoryMap.get(key).push(point);
+          }
+        }
+        
+        // 각 카테고리별로 가장 최신 연도 선택
+        for (const [category, points] of categoryMap.entries()) {
+          // 연도가 있는 경우 가장 최신 연도 선택
+          const yearPoints = points.filter(p => p.year);
+          if (yearPoints.length > 0) {
+            // 연도순 정렬 후 가장 최신 것 선택
+            yearPoints.sort((a, b) => {
+              const yearA = parseInt(a.year) || 0;
+              const yearB = parseInt(b.year) || 0;
+              return yearB - yearA; // 내림차순 (최신이 먼저)
+            });
+            const latest = yearPoints[0];
+            finalDataPoints.push({
+              label: category,
+              value: latest.value,
+              originalLabel: category
+            });
+          } else {
+            // 연도가 없는 경우 (카테고리만 있는 경우) 가장 마지막 값 선택
+            const latest = points[points.length - 1];
+            finalDataPoints.push({
+              label: category,
+              value: latest.value,
+              originalLabel: category
+            });
+          }
+        }
+      } else {
+        // 연도 데이터가 없는 경우 원본 데이터 사용
+        finalDataPoints.push(...dataPoints.map(p => ({
+          label: p.originalLabel || p.label,
+          value: p.value,
+          originalLabel: p.originalLabel || p.label
+        })));
+      }
+      
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:180',message:'Time series parsing complete',data:{totalDataPoints:dataPoints.length,firstFew:dataPoints.slice(0,5),xLabel,yLabel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:200',message:'Time series parsing complete',data:{totalDataPoints:dataPoints.length,finalDataPoints:finalDataPoints.length,firstFew:finalDataPoints.slice(0,5),xLabel,yLabel,hasYearData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
       
       return {
         success: true,
         data: {
           name: fileName,
-          xLabel: xLabel || "항목",
+          xLabel: "항목",
           yLabel: yLabel || "값",
-          data: dataPoints
+          data: finalDataPoints.length > 0 ? finalDataPoints : dataPoints
         }
       };
     } else {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:193',message:'Time series parsing failed - no data points',data:{isTimeSeries,headersLength:headers.length,startRow,linesProcessed:lines.length-startRow},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:220',message:'Time series parsing failed - no data points',data:{isTimeSeries,headersLength:headers.length,startRow,linesProcessed:lines.length-startRow},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
     }
   }
