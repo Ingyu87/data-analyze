@@ -281,15 +281,16 @@ export const parseTextToData = (text, fileName) => {
         return 0;
       });
       
-      // 카테고리별 데이터가 있고 연도가 여러 개인 경우, 각 카테고리별로 가장 최신 연도의 값만 사용
-      // 예: "계 (2022)", "계 (2023)", "계 (2024)" -> "계": 2024년 값만
+      // 시계열 데이터는 모든 연도를 보여주고, 카테고리 데이터(국가, 지역 등)는 최신 연도만 선택
       const categoryMap = new Map();
       const finalDataPoints = [];
       
-      // 연도 데이터가 있는 경우, 각 카테고리별로 가장 최신 연도만 선택
+      // 연도 데이터가 있는 경우
       const hasYearData = dataPoints.some(d => d.year);
-      if (hasYearData || dataPoints.some(d => d.rawCategory && d.rawCategory.match(/^\d{4}/))) {
-        // 연도별로 그룹화 (연도가 있거나 rawCategory에 연도가 포함된 경우)
+      const hasRawCategoryWithYear = dataPoints.some(d => d.rawCategory && d.rawCategory.match(/^\d{4}/));
+      
+      if (hasYearData || hasRawCategoryWithYear) {
+        // 카테고리별로 그룹화
         for (const point of dataPoints) {
           if (point.originalLabel) {
             const key = point.originalLabel;
@@ -300,42 +301,63 @@ export const parseTextToData = (text, fileName) => {
           }
         }
         
-        // 각 카테고리별로 가장 최신 연도 선택
+        // 각 카테고리별로 처리
         for (const [category, points] of categoryMap.entries()) {
-          // 연도가 있는 경우 가장 최신 연도 선택
           const yearPoints = points.filter(p => p.year);
-          if (yearPoints.length > 0) {
-            // 연도순 정렬 후 가장 최신 것 선택
+          
+          // 시계열 데이터인 경우: 모든 연도 데이터를 보여줌
+          // 카테고리 데이터인 경우: 최신 연도만 선택
+          // 구분 기준: 같은 카테고리에 여러 연도가 있으면 시계열, 아니면 카테고리
+          if (yearPoints.length > 1) {
+            // 시계열 데이터: 모든 연도 데이터를 보여줌
+            // 연도순 정렬
             yearPoints.sort((a, b) => {
               const yearA = parseInt(a.year) || 0;
               const yearB = parseInt(b.year) || 0;
-              return yearB - yearA; // 내림차순 (최신이 먼저)
+              return yearA - yearB; // 오름차순 (과거부터 미래로)
             });
-            const latest = yearPoints[0];
+            
+            // 모든 연도 데이터 추가
+            for (const point of yearPoints) {
+              finalDataPoints.push({
+                label: point.label || `${category} (${point.year})`,
+                value: point.value,
+                originalLabel: category
+              });
+            }
+          } else if (yearPoints.length === 1) {
+            // 연도가 하나만 있는 경우: 그대로 사용
             finalDataPoints.push({
               label: category,
-              value: latest.value,
+              value: yearPoints[0].value,
               originalLabel: category
             });
           } else {
             // 연도가 없는 경우 (카테고리만 있는 경우) rawCategory를 사용해서 정렬
-            // "2024 p)" 같은 경우도 처리
             const pointsWithRaw = points.filter(p => p.rawCategory);
-            if (pointsWithRaw.length > 0) {
-              // rawCategory에서 연도 추출해서 정렬
+            if (pointsWithRaw.length > 1) {
+              // 여러 rawCategory가 있으면 모든 데이터 보여줌 (시계열처럼)
               pointsWithRaw.sort((a, b) => {
                 const yearA = parseInt(a.rawCategory.match(/^(\d{4})/)?.[1] || '0') || 0;
                 const yearB = parseInt(b.rawCategory.match(/^(\d{4})/)?.[1] || '0') || 0;
                 if (yearA !== 0 || yearB !== 0) {
-                  return yearB - yearA; // 내림차순 (최신이 먼저)
+                  return yearA - yearB; // 오름차순
                 }
-                // 연도가 없으면 원래 순서 유지
                 return 0;
               });
-              const latest = pointsWithRaw[0];
+              
+              for (const point of pointsWithRaw) {
+                finalDataPoints.push({
+                  label: point.label || `${category} (${point.rawCategory})`,
+                  value: point.value,
+                  originalLabel: category
+                });
+              }
+            } else if (pointsWithRaw.length === 1) {
+              // rawCategory가 하나만 있으면 그대로 사용
               finalDataPoints.push({
                 label: category,
-                value: latest.value,
+                value: pointsWithRaw[0].value,
                 originalLabel: category
               });
             } else {
