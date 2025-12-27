@@ -1,0 +1,57 @@
+body {
+  background-color: #0f0518;
+  color: #e9d5ff;
+  font-family: 'Noto Sans KR', sans-serif;
+  overflow-x: hidden;
+}
+
+.alchemy-gradient {
+  background: linear-gradient(135deg, #2e1065 0%, #4c1d95 50%, #0f0518 100%);
+}
+
+.glass-panel {
+  background: rgba(30, 27, 75, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+}
+
+.neon-text {
+  text-shadow: 0 0 10px rgba(167, 139, 250, 0.7);
+}
+
+.hidden-sig {
+  display: none;
+}
+
+.scolding-bg {
+  background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #000000 100%);
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+canvas {
+  cursor: crosshair;
+}
+
+.drag-active {
+  border-color: #fbbf24 !important;
+  background-color: rgba(251, 191, 36, 0.1) !important;
+  transform: scale(1.02);
+}
+
+
