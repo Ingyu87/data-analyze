@@ -29,7 +29,14 @@ const KosisSearch = ({ onDataSelect }) => {
       }
     } catch (err) {
       console.error('검색 오류:', err);
-      setError('검색 중 오류가 발생했습니다: ' + err.message);
+      let errorMessage = '검색 중 오류가 발생했습니다.';
+      if (err.message) {
+        errorMessage += '\n' + err.message;
+      }
+      if (err.message && err.message.includes('KOSIS_API_KEY')) {
+        errorMessage += '\n\nVercel 환경변수에 KOSIS_API_KEY를 설정해주세요.';
+      }
+      setError(errorMessage);
     } finally {
       setIsSearching(false);
     }

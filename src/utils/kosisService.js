@@ -18,21 +18,30 @@ export const searchKosisStatistics = async (query) => {
     });
 
     if (!response.ok) {
-      throw new Error(`검색 실패: ${response.status}`);
+      const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류' }));
+      throw new Error(errorData.message || errorData.error || `검색 실패: ${response.status}`);
     }
 
     const result = await response.json();
-    if (result.success && result.data) {
+    
+    if (!result.success) {
+      throw new Error(result.error || result.message || '검색 실패');
+    }
+    
+    if (result.data) {
       // KOSIS API 응답 구조에 따라 파싱
       if (Array.isArray(result.data)) {
         return result.data;
       } else if (result.data.RESULT) {
-        return result.data.RESULT;
+        return Array.isArray(result.data.RESULT) ? result.data.RESULT : [];
       } else if (result.data.statblList) {
-        return result.data.statblList;
+        return Array.isArray(result.data.statblList) ? result.data.statblList : [];
+      } else if (result.data.list) {
+        return Array.isArray(result.data.list) ? result.data.list : [];
       }
-      return [];
     }
+    
+    // 데이터가 없으면 빈 배열 반환
     return [];
   } catch (error) {
     console.error('KOSIS 검색 오류:', error);
