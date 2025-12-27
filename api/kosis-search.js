@@ -212,6 +212,9 @@ export default async function handler(req, res) {
             } catch (parseError) {
               console.error('JSON 파싱 오류:', parseError);
               console.error('응답 텍스트:', responseText.substring(0, 500));
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:185',message:'Server: JSON parse error',data:{attempt:i+1,parseError:parseError.message,responseText:responseText.substring(0,500),responseLength:responseText.length,firstChars:responseText.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+              // #endregion
               lastError = new Error(`JSON 파싱 실패: ${parseError.message}`);
               lastResponse = responseText;
               continue;
@@ -298,6 +301,9 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('KOSIS API 오류:', error);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:297',message:'Server: Top-level error',data:{errorMessage:error.message,errorStack:error.stack?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     return res.status(500).json({ 
       error: 'KOSIS API 호출 실패', 
       message: error.message,

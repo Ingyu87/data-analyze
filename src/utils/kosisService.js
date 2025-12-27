@@ -25,15 +25,37 @@ export const searchKosisStatistics = async (query) => {
     fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:20',message:'Client: After fetch',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
 
+    // 응답 텍스트를 먼저 읽어서 확인
+    const responseText = await response.text();
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:28',message:'Client: Response text',data:{status:response.status,ok:response.ok,responseLength:responseText.length,responsePreview:responseText.substring(0,200),isJSON:responseText.trim().startsWith('{')||responseText.trim().startsWith('[')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류' }));
+      let errorData;
+      try {
+        errorData = JSON.parse(responseText);
+      } catch (parseErr) {
+        // JSON 파싱 실패 - 원본 텍스트 사용
+        errorData = { error: '서버 오류', message: responseText.substring(0, 500) || `HTTP ${response.status} 오류` };
+      }
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:22',message:'Client: Error response',data:{status:response.status,errorData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:35',message:'Client: Error response',data:{status:response.status,errorData,responseText:responseText.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
       throw new Error(errorData.message || errorData.error || `검색 실패: ${response.status}`);
     }
 
-    const result = await response.json();
+    // JSON 파싱 시도
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseErr) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:45',message:'Client: JSON parse error',data:{parseError:parseErr.message,responseText:responseText.substring(0,500),responseLength:responseText.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      throw new Error(`JSON 파싱 실패: ${parseErr.message}. 응답: ${responseText.substring(0, 200)}`);
+    }
     
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:25',message:'Client: API response',data:{success:result.success,hasData:!!result.data,dataIsArray:Array.isArray(result.data),dataLength:Array.isArray(result.data)?result.data.length:0,error:result.error,message:result.message,details:result.details},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
