@@ -502,6 +502,10 @@ const App = () => {
         {view === 'intro' && (
           <Intro
             onKosisDataSelect={handleKosisDataSelect}
+            onFileSelect={handleFileSelect}
+            onDrag={handleDrag}
+            onDrop={handleDrop}
+            dragActive={dragActive}
           />
         )}
 

@@ -177,14 +177,20 @@ const KosisSearch = ({ onDataSelect }) => {
             const statId = item.TBL_ID || item.STATBL_ID || item.statId || item.id || item.STAT_ID;
             const orgName = item.ORG_NM || item.orgName || '';
 
+            // KOSIS 다운로드 링크 생성
+            const kosisUrl = item.TBL_VIEW_URL || item.LINK_URL || 
+              (item.TBL_ID ? `https://kosis.kr/statHtml/statHtml.do?orgId=${item.ORG_ID}&tblId=${item.TBL_ID}` : null);
+
             return (
               <div
                 key={statId || idx}
-                className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-lg hover:border-purple-400 transition cursor-pointer"
-                onClick={() => handleSelectStatistics(item)}
+                className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-lg hover:border-purple-400 transition"
               >
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => handleSelectStatistics(item)}
+                  >
                     <h4 className="text-white font-bold mb-1">{statName}</h4>
                     {orgName && (
                       <p className="text-purple-300 text-sm mb-2">📌 {orgName}</p>
@@ -196,9 +202,23 @@ const KosisSearch = ({ onDataSelect }) => {
                       <p className="text-purple-400 text-xs">📊 {item.STAT_NM}</p>
                     )}
                   </div>
-                  {isLoadingData && (
-                    <Loader className="animate-spin text-blue-400" size={20} />
-                  )}
+                  <div className="flex items-center gap-2">
+                    {kosisUrl && (
+                      <a
+                        href={kosisUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded border border-blue-400 transition"
+                        title="KOSIS에서 파일 다운로드"
+                      >
+                        📥 다운로드
+                      </a>
+                    )}
+                    {isLoadingData && (
+                      <Loader className="animate-spin text-blue-400" size={20} />
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -215,15 +235,27 @@ const KosisSearch = ({ onDataSelect }) => {
       )}
 
       {/* 안내 */}
-      <div className="mt-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
-        <p className="text-yellow-200 text-sm">
-          💡 <strong>사용 방법:</strong>
-        </p>
-        <ul className="text-yellow-100 text-xs mt-2 space-y-1 list-disc list-inside">
-          <li>검색어를 입력하고 검색 버튼을 클릭하세요</li>
-          <li>원하는 통계표를 클릭하면 자동으로 데이터가 로드됩니다</li>
-          <li>로드된 데이터는 그래프로 시각화되어 분석됩니다</li>
-        </ul>
+      <div className="mt-6 space-y-4">
+        <div className="p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+          <p className="text-yellow-200 text-sm">
+            💡 <strong>사용 방법:</strong>
+          </p>
+          <ul className="text-yellow-100 text-xs mt-2 space-y-1 list-disc list-inside">
+            <li>검색어를 입력하고 검색 버튼을 클릭하세요</li>
+            <li>원하는 통계표를 클릭하면 자동으로 데이터가 로드됩니다</li>
+            <li>로드된 데이터는 그래프로 시각화되어 분석됩니다</li>
+            <li>📥 다운로드 버튼을 클릭하면 KOSIS에서 CSV/Excel 파일을 다운로드할 수 있습니다</li>
+          </ul>
+        </div>
+        <div className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+          <p className="text-blue-200 text-sm mb-2">
+            📁 <strong>파일 업로드도 가능합니다:</strong>
+          </p>
+          <p className="text-blue-100 text-xs">
+            KOSIS에서 다운로드한 CSV나 Excel 파일을 직접 업로드하여 분석할 수 있습니다. 
+            상단의 "파일 업로드" 탭을 확인하세요.
+          </p>
+        </div>
       </div>
     </div>
   );
