@@ -51,9 +51,12 @@ const KosisSearch = ({ onDataSelect }) => {
     setError(null);
 
     try {
-      // 통계표 ID 추출
-      const statId = statItem.STATBL_ID || statItem.statId || statItem.id;
+      // 통계표 ID 추출 (KOSIS API 응답 구조에 따라 여러 필드명 확인)
+      const statId = statItem.TBL_ID || statItem.STATBL_ID || statItem.statId || statItem.id || statItem.STAT_ID;
       if (!statId) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/KosisSearch.jsx:55',message:'Stat ID not found',data:{statItem,allKeys:Object.keys(statItem)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
         throw new Error('통계표 ID를 찾을 수 없습니다');
       }
 
@@ -66,7 +69,7 @@ const KosisSearch = ({ onDataSelect }) => {
       // 앱 형식으로 변환
       const converted = convertKosisDataToAppFormat(
         data,
-        statItem.STATBL_NM || statItem.statName || statItem.name || 'KOSIS 통계'
+        statItem.TBL_NM || statItem.STATBL_NM || statItem.statName || statItem.name || 'KOSIS 통계'
       );
 
       if (converted.success) {
@@ -152,8 +155,8 @@ const KosisSearch = ({ onDataSelect }) => {
             검색 결과 ({searchResults.length}개)
           </h3>
           {searchResults.map((item, idx) => {
-            const statName = item.STATBL_NM || item.statName || item.name || `통계표 ${idx + 1}`;
-            const statId = item.STATBL_ID || item.statId || item.id;
+            const statName = item.TBL_NM || item.STATBL_NM || item.statName || item.name || `통계표 ${idx + 1}`;
+            const statId = item.TBL_ID || item.STATBL_ID || item.statId || item.id || item.STAT_ID;
             const orgName = item.ORG_NM || item.orgName || '';
 
             return (
@@ -168,8 +171,11 @@ const KosisSearch = ({ onDataSelect }) => {
                     {orgName && (
                       <p className="text-purple-300 text-sm mb-2">📌 {orgName}</p>
                     )}
-                    {item.STATBL_ENG_NM && (
-                      <p className="text-purple-400 text-xs">{item.STATBL_ENG_NM}</p>
+                    {(item.STATBL_ENG_NM || item.TBL_ENG_NM) && (
+                      <p className="text-purple-400 text-xs">{item.STATBL_ENG_NM || item.TBL_ENG_NM}</p>
+                    )}
+                    {item.STAT_NM && (
+                      <p className="text-purple-400 text-xs">📊 {item.STAT_NM}</p>
                     )}
                   </div>
                   {isLoadingData && (

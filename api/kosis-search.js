@@ -287,8 +287,15 @@ export default async function handler(req, res) {
       const encodedStatId = encodeURIComponent(statId.trim());
       
       const dataUrls = [
+        // 방법 1: TBL_ID 사용 (통계표 ID)
+        `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&tblId=${encodedStatId}`,
+        // 방법 2: userStatsId 사용
         `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&userStatsId=${encodedStatId}`,
+        // 방법 3: TBL_ID 사용 (jsonVD 없음)
+        `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&tblId=${encodedStatId}`,
+        // 방법 4: userStatsId 사용 (jsonVD 없음)
         `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&userStatsId=${encodedStatId}`,
+        // 방법 5: 간단한 형식
         `https://kosis.kr/openapi/statisticsData.do?apiKey=${encodedApiKey}&format=json&userStatsId=${encodedStatId}`
       ];
       
