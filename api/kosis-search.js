@@ -25,36 +25,75 @@ export default async function handler(req, res) {
 
   try {
     if (searchQuery) {
-      // 통계표 검색 - 여러 가능한 엔드포인트 시도
+      // 통계표 검색 - KOSIS API 실제 구조에 맞게 수정
+      // KOSIS OpenAPI는 여러 방법을 지원하므로 여러 방식 시도
       const searchUrls = [
+        // 방법 1: 통계표 목록 조회 (키워드 검색)
+        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${apiKey}&format=json&jsonVD=Y&userStatsId=${encodeURIComponent(searchQuery)}`,
+        // 방법 2: 통계표 검색
         `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${apiKey}&format=json&jsonVD=Y&userStatsId=${encodeURIComponent(searchQuery)}`,
-        `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${apiKey}&format=json&userStatsId=${encodeURIComponent(searchQuery)}`,
-        `https://kosis.kr/openapi/statisticsSearch.do?apiKey=${apiKey}&format=json&userStatsId=${encodeURIComponent(searchQuery)}`
+        // 방법 3: 간단한 형식
+        `https://kosis.kr/openapi/statisticsList.do?apiKey=${apiKey}&format=json&userStatsId=${encodeURIComponent(searchQuery)}`,
+        // 방법 4: 키워드 검색 (다른 파라미터)
+        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${apiKey}&format=json&jsonVD=Y&keyword=${encodeURIComponent(searchQuery)}`,
       ];
       
       let lastError = null;
-      for (const searchUrl of searchUrls) {
+      let lastResponse = null;
+      
+      for (let i = 0; i < searchUrls.length; i++) {
+        const searchUrl = searchUrls[i];
         try {
+          console.log(`KOSIS API 시도 ${i + 1}: ${searchUrl.substring(0, 100)}...`);
+          
           const response = await fetch(searchUrl, {
             headers: {
               'Accept': 'application/json',
-            }
+            },
+            timeout: 10000
           });
           
+          const responseText = await response.text();
+          console.log(`KOSIS API 응답 ${i + 1} (${response.status}):`, responseText.substring(0, 500));
+          
           if (response.ok) {
-            const data = await response.json();
-            return res.status(200).json({ success: true, data });
+            try {
+              const data = JSON.parse(responseText);
+              console.log('KOSIS API 성공, 데이터 구조:', Object.keys(data));
+              
+              // 응답 구조 확인 및 반환
+              return res.status(200).json({ 
+                success: true, 
+                data,
+                debug: {
+                  url: searchUrl.substring(0, 100),
+                  dataKeys: Object.keys(data)
+                }
+              });
+            } catch (parseError) {
+              console.error('JSON 파싱 오류:', parseError);
+              lastError = new Error(`JSON 파싱 실패: ${parseError.message}`);
+              lastResponse = responseText;
+              continue;
+            }
           } else {
-            const errorText = await response.text();
-            lastError = new Error(`KOSIS API 오류 (${response.status}): ${errorText.substring(0, 200)}`);
+            lastError = new Error(`KOSIS API 오류 (${response.status}): ${responseText.substring(0, 200)}`);
+            lastResponse = responseText;
           }
         } catch (err) {
+          console.error(`KOSIS API 시도 ${i + 1} 실패:`, err.message);
           lastError = err;
-          continue; // 다음 URL 시도
+          continue;
         }
       }
       
-      throw lastError || new Error('모든 KOSIS API 엔드포인트 시도 실패');
+      // 모든 시도 실패
+      return res.status(500).json({ 
+        error: 'KOSIS API 호출 실패', 
+        message: lastError?.message || '모든 엔드포인트 시도 실패',
+        details: lastResponse ? `마지막 응답: ${lastResponse.substring(0, 500)}` : '응답 없음',
+        suggestion: 'KOSIS API 키와 엔드포인트를 확인해주세요. KOSIS 공유서비스에서 API 사용법을 확인하세요.'
+      });
       
     } else if (statId) {
       // 통계표 데이터 조회

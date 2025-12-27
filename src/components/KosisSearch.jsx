@@ -23,20 +23,24 @@ const KosisSearch = ({ onDataSelect }) => {
 
     try {
       const results = await searchKosisStatistics(searchQuery);
+      console.log('검색 결과:', results);
       setSearchResults(results);
       if (results.length === 0) {
-        setError('검색 결과가 없습니다');
+        setError('검색 결과가 없습니다. 다른 검색어를 시도해보세요.\n\n예: "출생아", "인구", "경제", "교육", "고용"');
       }
     } catch (err) {
       console.error('검색 오류:', err);
       let errorMessage = '검색 중 오류가 발생했습니다.';
       if (err.message) {
-        errorMessage += '\n' + err.message;
+        errorMessage += '\n\n' + err.message;
       }
       if (err.message && err.message.includes('KOSIS_API_KEY')) {
         errorMessage += '\n\nVercel 환경변수에 KOSIS_API_KEY를 설정해주세요.';
+      } else if (err.message && err.message.includes('API')) {
+        errorMessage += '\n\nKOSIS API가 응답하지 않습니다. 잠시 후 다시 시도해주세요.';
       }
       setError(errorMessage);
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
     }

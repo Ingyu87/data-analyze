@@ -24,24 +24,43 @@ export const searchKosisStatistics = async (query) => {
 
     const result = await response.json();
     
+    console.log('KOSIS 검색 응답:', result);
+    
     if (!result.success) {
-      throw new Error(result.error || result.message || '검색 실패');
+      throw new Error(result.error || result.message || result.details || '검색 실패');
     }
     
     if (result.data) {
       // KOSIS API 응답 구조에 따라 파싱
+      // 여러 가능한 구조 확인
       if (Array.isArray(result.data)) {
+        console.log('배열 형식 응답:', result.data.length, '개 항목');
         return result.data;
       } else if (result.data.RESULT) {
-        return Array.isArray(result.data.RESULT) ? result.data.RESULT : [];
+        const results = Array.isArray(result.data.RESULT) ? result.data.RESULT : [];
+        console.log('RESULT 형식 응답:', results.length, '개 항목');
+        return results;
       } else if (result.data.statblList) {
-        return Array.isArray(result.data.statblList) ? result.data.statblList : [];
+        const results = Array.isArray(result.data.statblList) ? result.data.statblList : [];
+        console.log('statblList 형식 응답:', results.length, '개 항목');
+        return results;
       } else if (result.data.list) {
-        return Array.isArray(result.data.list) ? result.data.list : [];
+        const results = Array.isArray(result.data.list) ? result.data.list : [];
+        console.log('list 형식 응답:', results.length, '개 항목');
+        return results;
+      } else if (result.data.StatisticSearch) {
+        const results = Array.isArray(result.data.StatisticSearch) ? result.data.StatisticSearch : [];
+        console.log('StatisticSearch 형식 응답:', results.length, '개 항목');
+        return results;
+      } else {
+        // 객체의 모든 키 확인
+        console.log('알 수 없는 응답 구조:', Object.keys(result.data));
+        console.log('전체 응답:', JSON.stringify(result.data).substring(0, 500));
       }
     }
     
     // 데이터가 없으면 빈 배열 반환
+    console.warn('검색 결과가 비어있습니다');
     return [];
   } catch (error) {
     console.error('KOSIS 검색 오류:', error);
