@@ -16,6 +16,10 @@ export default async function handler(req, res) {
   const { searchQuery, statId } = req.body;
   const apiKey = process.env.KOSIS_API_KEY;
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:17',message:'API key check',data:{hasApiKey:!!apiKey,apiKeyLength:apiKey?.length||0,searchQuery,statId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
   if (!apiKey) {
     return res.status(500).json({ 
       error: 'KOSIS_API_KEY 환경변수가 설정되지 않았습니다',
@@ -28,20 +32,28 @@ export default async function handler(req, res) {
       // 통계표 검색 - KOSIS API 실제 구조에 맞게 수정
       // KOSIS OpenAPI는 여러 방법을 지원하므로 여러 방식 시도
       // API 키는 URL 인코딩 필요 (특수문자 포함 가능)
-      const encodedApiKey = encodeURIComponent(apiKey.trim());
-      const encodedQuery = encodeURIComponent(searchQuery.trim());
+      const trimmedApiKey = apiKey.trim();
+      const trimmedQuery = searchQuery.trim();
+      const encodedApiKey = encodeURIComponent(trimmedApiKey);
+      const encodedQuery = encodeURIComponent(trimmedQuery);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:31',message:'Before URL encoding',data:{apiKeyLength:trimmedApiKey.length,apiKeyStart:trimmedApiKey.substring(0,10),query:trimmedQuery,encodedApiKeyLength:encodedApiKey.length,encodedQueryLength:encodedQuery.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       
       const searchUrls = [
-        // 방법 1: 통계표 목록 조회 (orgId 없이 - 전체 검색)
-        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&keyword=${encodedQuery}`,
-        // 방법 2: 통계표 검색 API (statisticsSearch 사용)
+        // 방법 1: statisticsSearch.do 사용 (키워드 검색 전용)
         `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&keyword=${encodedQuery}`,
-        // 방법 3: 통계표 목록 조회 (jsonVD 없음)
-        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&keyword=${encodedQuery}`,
-        // 방법 4: 통계표 목록 조회 (userStatsId 사용 - 통계표 ID로 검색)
-        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&userStatsId=${encodedQuery}`,
-        // 방법 5: 통계표 목록 조회 (orgId=101 - 통계청)
+        // 방법 2: statisticsSearch.do (jsonVD 없음)
+        `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${encodedApiKey}&format=json&keyword=${encodedQuery}`,
+        // 방법 3: statisticsList.do (orgId=101 통계청, keyword 사용)
         `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&orgId=101&keyword=${encodedQuery}`,
+        // 방법 4: statisticsList.do (orgId=301 교육부, keyword 사용)
+        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&orgId=301&keyword=${encodedQuery}`,
+        // 방법 5: statisticsList.do (전체 조직, keyword 사용)
+        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&keyword=${encodedQuery}`,
+        // 방법 6: statisticsList.do (orgId 없이, jsonVD 없음)
+        `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&keyword=${encodedQuery}`,
       ];
       
       let lastError = null;
@@ -50,6 +62,10 @@ export default async function handler(req, res) {
       for (let i = 0; i < searchUrls.length; i++) {
         const searchUrl = searchUrls[i];
         try {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:50',message:'Before API call',data:{attempt:i+1,url:searchUrl,urlLength:searchUrl.length,hasApiKeyParam:searchUrl.includes('apiKey='),hasKeywordParam:searchUrl.includes('keyword='),hasOrgId:searchUrl.includes('orgId=')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
+          
           console.log(`KOSIS API 시도 ${i + 1}: ${searchUrl.substring(0, 100)}...`);
           
           const response = await fetch(searchUrl, {
@@ -61,6 +77,10 @@ export default async function handler(req, res) {
           
           const responseText = await response.text();
           console.log(`KOSIS API 응답 ${i + 1} (${response.status}):`, responseText.substring(0, 500));
+          
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:62',message:'After API response',data:{attempt:i+1,status:response.status,responseLength:responseText.length,responsePreview:responseText.substring(0,200),isArray:responseText.trim().startsWith('['),isObject:responseText.trim().startsWith('{')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
           
           if (response.ok) {
             try {
@@ -77,6 +97,10 @@ export default async function handler(req, res) {
               console.log('KOSIS API 성공, 데이터 구조:', Array.isArray(data) ? `Array(${data.length})` : Object.keys(data));
               console.log('KOSIS API 전체 응답:', JSON.stringify(data).substring(0, 1000));
               
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:76',message:'After JSON parse',data:{attempt:i+1,isArray:Array.isArray(data),dataLength:Array.isArray(data)?data.length:0,dataKeys:Array.isArray(data)?[]:Object.keys(data),firstItem:Array.isArray(data)&&data.length>0?data[0]:null,hasErr:Array.isArray(data)&&data.length>0&&data[0]?.err?true:false,errCode:Array.isArray(data)&&data.length>0?data[0]?.err:null,errMsg:Array.isArray(data)&&data.length>0?data[0]?.errMsg:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+              // #endregion
+              
               // 배열 응답인 경우 (오류 메시지 포함 가능)
               if (Array.isArray(data)) {
                 // 첫 번째 요소가 오류인지 확인
@@ -90,6 +114,9 @@ export default async function handler(req, res) {
                     
                     // 오류 코드별 처리
                     if (errCode === '20' || errMsg.includes('필수') || errMsg.includes('누락')) {
+                      // #region agent log
+                      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:92',message:'Missing parameter error detected',data:{attempt:i+1,errCode,errMsg,url:searchUrl,willTryNext:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                      // #endregion
                       // 필수 파라미터 누락 - 다른 엔드포인트 시도
                       lastError = new Error(`필수 파라미터 누락: ${errMsg}`);
                       lastResponse = responseText;
@@ -216,6 +243,10 @@ export default async function handler(req, res) {
       console.error('모든 KOSIS API 엔드포인트 시도 실패');
       console.error('마지막 오류:', lastError?.message);
       console.error('마지막 응답:', lastResponse?.substring(0, 1000));
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:215',message:'All attempts failed',data:{totalAttempts:searchUrls.length,lastError:lastError?.message,lastResponsePreview:lastResponse?.substring(0,500),apiKeyLength:apiKey?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       
       return res.status(500).json({ 
         success: false,

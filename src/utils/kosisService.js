@@ -9,6 +9,10 @@
  */
 export const searchKosisStatistics = async (query) => {
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:10',message:'Client: Before API call',data:{query},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
     const response = await fetch('/api/kosis-search', {
       method: 'POST',
       headers: {
@@ -17,12 +21,23 @@ export const searchKosisStatistics = async (query) => {
       body: JSON.stringify({ searchQuery: query }),
     });
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:20',message:'Client: After fetch',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류' }));
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:22',message:'Client: Error response',data:{status:response.status,errorData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       throw new Error(errorData.message || errorData.error || `검색 실패: ${response.status}`);
     }
 
     const result = await response.json();
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:25',message:'Client: API response',data:{success:result.success,hasData:!!result.data,dataIsArray:Array.isArray(result.data),dataLength:Array.isArray(result.data)?result.data.length:0,error:result.error,message:result.message,details:result.details},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     
     console.log('KOSIS 검색 응답:', result);
     
