@@ -105,6 +105,25 @@ export default async function handler(req, res) {
 장기 예측 (10년 후): ${analysisResult.longTermPrediction?.value10Years?.toFixed(1) || 'N/A'}
 장기 예측 (20년 후): ${analysisResult.longTermPrediction?.value20Years?.toFixed(1) || 'N/A'}`;
         }
+      } else if (step === 'question-generation') {
+        if (analysisResult.dataset) {
+          const maxValue = Math.max(...analysisResult.dataset.map(d => d.value));
+          const minValue = Math.min(...analysisResult.dataset.map(d => d.value));
+          dataContext = `데이터 이름: ${analysisResult.title || analysisResult.file1}
+데이터 포인트 수: ${analysisResult.dataset.length}개
+최대값: ${maxValue}
+최소값: ${minValue}
+평균값: ${(analysisResult.dataset.reduce((sum, d) => sum + d.value, 0) / analysisResult.dataset.length).toFixed(1)}`;
+        }
+      } else if (step === 'grading') {
+        if (analysisResult.dataset) {
+          dataContext = `데이터 이름: ${analysisResult.title || analysisResult.file1}
+데이터 포인트 수: ${analysisResult.dataset.length}개
+그래프 유형: ${analysisResult.type === 'single' ? '단일 데이터셋' : '복수 데이터셋'}`;
+        }
+      } else if (step === 'file-upload' || step === 'data-parsing') {
+        // Staging 단계에서는 stagedFiles 정보가 없으므로 기본 예시 사용
+        dataContext = `파일 업로드 및 파싱 단계입니다.`;
       }
       
       prompt = `당신은 초등학생을 위한 친절한 AI 원리 설명 전문가입니다. 다음 AI 원리 단계에서 실제 데이터를 기반으로 구체적인 예시를 만들어주세요.

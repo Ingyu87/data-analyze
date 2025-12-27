@@ -1,13 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons } from './Icons';
-import AIPrincipleCard from './AIPrincipleCard';
+import AIPrincipleAccordion from './AIPrincipleAccordion';
 import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
+import { generateDynamicExample } from '../utils/aiPrincipleExampleGenerator';
 
 const Quiz = ({ questions, onComplete, analysisResult }) => {
   const [answers, setAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
+  const [dynamicExamples, setDynamicExamples] = useState({});
   const { CheckCircle, XCircle } = Icons;
+  
+  // 동적 예시 생성
+  useEffect(() => {
+    if (!analysisResult) return;
+    
+    const loadExamples = async () => {
+      const examples = {};
+      try {
+        const questionExample = await generateDynamicExample('question-generation', analysisResult);
+        if (questionExample) examples['question-generation'] = questionExample;
+        
+        const gradingExample = await generateDynamicExample('grading', analysisResult);
+        if (gradingExample) examples['grading'] = gradingExample;
+      } catch (error) {
+        console.log('예시 생성 실패:', error);
+      }
+      setDynamicExamples(examples);
+    };
+    
+    loadExamples();
+  }, [analysisResult]);
 
   const handleAnswer = (questionId, answerIndex) => {
     setAnswers(prev => ({
@@ -59,9 +82,9 @@ const Quiz = ({ questions, onComplete, analysisResult }) => {
           
           {/* 채점 AI 원리 설명 */}
           <div className="mb-6">
-            <AIPrincipleCard 
+            <AIPrincipleAccordion 
               step="grading" 
-              explanation={getAIPrincipleExplanation('grading')} 
+              explanation={getAIPrincipleExplanation('grading', analysisResult, dynamicExamples['grading'])} 
             />
           </div>
           <div className="text-4xl font-bold text-white mb-2">
@@ -134,9 +157,9 @@ const Quiz = ({ questions, onComplete, analysisResult }) => {
       
       {/* AI 원리 설명 */}
       <div className="mb-6">
-        <AIPrincipleCard 
+        <AIPrincipleAccordion 
           step="question-generation" 
-          explanation={getAIPrincipleExplanation('question-generation')} 
+          explanation={getAIPrincipleExplanation('question-generation', analysisResult, dynamicExamples['question-generation'])} 
         />
       </div>
 

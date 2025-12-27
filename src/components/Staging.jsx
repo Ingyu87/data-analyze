@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icons } from './Icons';
-import AIPrincipleCard from './AIPrincipleCard';
+import AIPrincipleAccordion from './AIPrincipleAccordion';
 import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
 
 const Staging = ({
@@ -27,7 +27,7 @@ const Staging = ({
     >
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          <CheckCircle className="text-green-400" /> 재료 목록 ({stagedFiles.length}개)
+          <CheckCircle className="text-green-400" /> 데이터 목록 ({stagedFiles.length}개)
         </h2>
         <label className="cursor-pointer bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-4 py-2 rounded-lg flex items-center gap-2 border border-purple-500/50 transition">
           <Plus size={16} /> <span>파일 추가하기</span>
@@ -114,20 +114,22 @@ const Staging = ({
             onClick={onPerformAlchemy}
             className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-8 py-3 rounded-lg flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transition transform hover:scale-105"
           >
-            <Play size={20} /> 연성 시작하기
+            <Play size={20} /> 데이터 분석하기
           </button>
         ) : (
           <div className="text-gray-500 flex items-center gap-2">
-            <Lock size={16} /> 재료 부족
+            <Lock size={16} /> 데이터 부족
           </div>
         )}
       </div>
       
       {/* AI 원리 설명 */}
-      <div className="mt-8 space-y-4">
+      <div className="mt-8">
         <h3 className="text-xl font-bold text-yellow-300 mb-4">🤖 이 단계에서 사용된 AI 원리</h3>
-        <AIPrincipleCard step="file-upload" explanation={getAIPrincipleExplanation('file-upload')} />
-        <AIPrincipleCard step="data-parsing" explanation={getAIPrincipleExplanation('data-parsing')} />
+        <div className="space-y-2">
+          <AIPrincipleAccordion step="file-upload" explanation={getAIPrincipleExplanation('file-upload')} />
+          <AIPrincipleAccordion step="data-parsing" explanation={getAIPrincipleExplanation('data-parsing')} />
+        </div>
       </div>
     </div>
   );

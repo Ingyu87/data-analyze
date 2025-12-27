@@ -78,7 +78,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
             <span className="text-purple-400">📊</span>{' '}
-            {analysisResult.type === 'single' ? '미래 예언 (Future)' : '결속 확인 (Connection)'}
+            {analysisResult.type === 'single' ? '데이터 시각화' : '상관관계 분석'}
           </h3>
           {analysisResult.type === 'single' && (
             <div className="flex flex-wrap gap-2">
@@ -104,7 +104,30 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
           )}
         </div>
         <div id="chart-div" className="w-full h-[400px] bg-black/20 rounded-lg mb-4"></div>
-        <ChartRender data={analysisResult} chartType={chartType} />
+        <ChartRender data={analysisResult} chartType={chartType} chartDivId="chart-div" />
+        
+        {/* 그래프 축 설명 */}
+        {analysisResult.type === 'single' && analysisResult.xLabel && analysisResult.yLabel && (
+          <div className="mt-4 p-4 bg-purple-900/30 rounded-lg border border-purple-500/30">
+            <h4 className="text-purple-200 font-bold mb-2">📐 그래프 읽는 방법</h4>
+            <div className="space-y-2 text-sm text-purple-100">
+              <p>
+                <strong className="text-yellow-300">가로축 (왼쪽에서 오른쪽):</strong> {analysisResult.xLabel}
+                <span className="text-purple-300 ml-2">→ 각 항목의 이름을 나타내요</span>
+              </p>
+              <p>
+                <strong className="text-yellow-300">세로축 (아래에서 위):</strong> {analysisResult.yLabel}
+                <span className="text-purple-300 ml-2">→ 각 항목의 크기나 수치를 나타내요</span>
+              </p>
+              <p className="mt-3 text-purple-200">
+                💡 <strong>숫자의 의미:</strong> 그래프 위의 숫자는 각 항목의 실제 값을 보여줘요. 
+                {chartType === 'line' && ' 선이 올라가면 값이 커지고, 내려가면 값이 작아진다는 뜻이에요.'}
+                {chartType === 'bar' && ' 막대가 길수록 값이 크다는 뜻이에요.'}
+                {chartType === 'pie' && ' 원그래프에서 각 조각의 크기가 클수록 전체 중에서 차지하는 비율이 크다는 뜻이에요.'}
+              </p>
+            </div>
+          </div>
+        )}
         
         {/* 그래프 선택 이유 설명 */}
         {showChartExplanation && analysisResult.type === 'single' && (
@@ -362,34 +385,60 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
         </div>
       )}
       
-      {!showQuiz && !quizResults && !showReportWriter && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="glass-panel rounded-xl p-6">
-            <h3 className="text-xl font-bold text-white mb-4 text-center">📚 그래프 해석 문제</h3>
-            <p className="text-purple-200 text-center mb-6">
-              초등학교 4학년 수준의 문제를 풀어보세요!
-            </p>
+      {/* 문제와 보고서 버튼 - 상호 배타적이지 않음 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="glass-panel rounded-xl p-6">
+          <h3 className="text-xl font-bold text-white mb-4 text-center">📚 그래프 해석 문제</h3>
+          <p className="text-purple-200 text-center mb-6">
+            초등학교 4학년 수준의 문제를 풀어보세요!
+          </p>
+          {!showQuiz && !quizResults ? (
             <button
               onClick={() => setShowQuiz(true)}
               className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
             >
               문제 풀기 (2문제)
             </button>
-          </div>
-          <div className="glass-panel rounded-xl p-6">
-            <h3 className="text-xl font-bold text-white mb-4 text-center">📝 보고서 작성</h3>
-            <p className="text-purple-200 text-center mb-6">
-              데이터 분석 결과를 바탕으로 보고서를 작성해보세요!
-            </p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-green-300 text-center mb-2">✅ 문제를 풀고 있어요!</p>
+              <button
+                onClick={() => {
+                  setShowQuiz(false);
+                  setQuizResults(null);
+                }}
+                className="w-full bg-gray-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-gray-700 transition"
+              >
+                문제 닫기
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="glass-panel rounded-xl p-6">
+          <h3 className="text-xl font-bold text-white mb-4 text-center">📝 보고서 작성</h3>
+          <p className="text-purple-200 text-center mb-6">
+            데이터 분석 결과를 바탕으로 보고서를 작성해보세요!
+          </p>
+          {!showReportWriter ? (
             <button
               onClick={() => setShowReportWriter(true)}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
             >
               보고서 작성하기
             </button>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-green-300 text-center mb-2">✅ 보고서를 작성하고 있어요!</p>
+              <button
+                onClick={() => setShowReportWriter(false)}
+                className="w-full bg-gray-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-gray-700 transition"
+              >
+                보고서 닫기
+              </button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {showQuiz && (
         <Quiz

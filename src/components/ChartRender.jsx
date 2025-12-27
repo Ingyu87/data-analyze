@@ -24,9 +24,20 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: 'rgba(0,0,0,0)',
       font: { color: '#e9d5ff' },
-      xaxis: { showgrid: false, color: '#a78bfa' },
-      yaxis: { showgrid: true, gridcolor: '#4c1d95', color: '#a78bfa' },
-      margin: { t: 40, r: 20, l: 40, b: 40 }
+      xaxis: { 
+        showgrid: false, 
+        color: '#a78bfa',
+        title: data.xLabel || '항목',
+        titlefont: { size: 14, color: '#e9d5ff' }
+      },
+      yaxis: { 
+        showgrid: true, 
+        gridcolor: '#4c1d95', 
+        color: '#a78bfa',
+        title: data.yLabel || '값',
+        titlefont: { size: 14, color: '#e9d5ff' }
+      },
+      margin: { t: 40, r: 20, l: 60, b: 60 }
     };
 
     if (data.type === 'single') {
@@ -146,13 +157,13 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
         ],
         {
           ...layout,
-          title: { text: '두 재료의 관계 확인', font: { size: 16, color: '#fff' } },
+          title: { text: '두 데이터의 관계 확인', font: { size: 16, color: '#fff' } },
           xaxis: { title: data.file1, color: '#a78bfa' },
           yaxis: { title: data.file2, color: '#a78bfa' }
         }
       );
     }
-  }, [data, chartType, plotlyLoaded, Plotly]);
+  }, [data, chartType, plotlyLoaded, Plotly, chartDivId]);
 
   return null;
 };

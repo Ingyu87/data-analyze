@@ -19,7 +19,7 @@ const Intro = ({ onFileSelect, dragActive, onDrag, onDrop }) => {
           className="w-32 h-32 drop-shadow-2xl"
         />
       </div>
-      <h2 className="text-3xl font-bold mb-4 text-white">모든 데이터를 연성합니다</h2>
+      <h2 className="text-3xl font-bold mb-4 text-white">데이터를 분석합니다</h2>
       <p className="text-purple-200 mb-8">
         PDF, 엑셀, CSV, 이미지까지.<br />
         깨진 글자도 자동으로 복구하여 분석합니다.
