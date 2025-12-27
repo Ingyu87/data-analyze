@@ -125,6 +125,22 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
                 {chartType === 'bar' && ' 막대가 길수록 값이 크다는 뜻이에요.'}
                 {chartType === 'pie' && ' 원그래프에서 각 조각의 크기가 클수록 전체 중에서 차지하는 비율이 크다는 뜻이에요.'}
               </p>
+              {analysisResult.dataset && analysisResult.dataset.length > 0 && (
+                <div className="mt-3 p-3 bg-purple-800/30 rounded border border-purple-500/20">
+                  <p className="text-xs text-purple-200 mb-2"><strong>📊 데이터 예시:</strong></p>
+                  <div className="space-y-1 text-xs text-purple-100">
+                    {analysisResult.dataset.slice(0, 5).map((d, idx) => (
+                      <p key={idx}>
+                        <span className="text-yellow-300">{d.originalLabel || d.label}:</span> {d.value.toLocaleString()}
+                        <span className="text-purple-300 ml-2">({analysisResult.yLabel})</span>
+                      </p>
+                    ))}
+                    {analysisResult.dataset.length > 5 && (
+                      <p className="text-purple-300">... 외 {analysisResult.dataset.length - 5}개 항목</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -449,10 +465,13 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
       )}
 
       {showReportWriter && (
-        <ReportWriter
-          analysisResult={analysisResult}
-          onBack={() => setShowReportWriter(false)}
-        />
+        <div className="mt-6">
+          <ReportWriter
+            analysisResult={analysisResult}
+            onBack={() => setShowReportWriter(false)}
+            stagedFiles={stagedFiles}
+          />
+        </div>
       )}
 
       {quizResults && (

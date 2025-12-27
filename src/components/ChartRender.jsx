@@ -15,10 +15,16 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
   }, []);
 
   useEffect(() => {
-    if (!plotlyLoaded || !Plotly) return;
+    if (!plotlyLoaded || !Plotly || !data) return;
     
     const div = document.getElementById(chartDivId);
-    if (!div) return;
+    if (!div) {
+      console.warn(`Chart div not found: ${chartDivId}`);
+      return;
+    }
+
+    // Cleanup flag to prevent React error #130
+    let isMounted = true;
 
     const layout = {
       paper_bgcolor: 'rgba(0,0,0,0)',
@@ -41,6 +47,11 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
     };
 
     if (data.type === 'single') {
+      if (!data.dataset || data.dataset.length === 0) {
+        console.warn('No dataset available for single chart');
+        return;
+      }
+
       const x = data.dataset.map((d) => d.originalLabel || d.label);
       const y = data.dataset.map((d) => d.value);
       
@@ -129,40 +140,61 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
         });
       }
       
-      Plotly.newPlot(
-        div,
-        traces,
-        {
-          ...layout,
-          title: { text: data.title, font: { size: 18, color: '#fff' } }
-        }
-      );
-    } else {
-      // 상관관계 산점도
-      Plotly.newPlot(
-        div,
-        [
+      if (isMounted) {
+        Plotly.newPlot(
+          div,
+          traces,
           {
-            x: data.dataset1.map((d) => d.value),
-            y: data.dataset2.map((d) => d.value),
-            mode: 'markers',
-            type: 'scatter',
-            name: '데이터 포인트',
-            marker: {
-              size: 12,
-              color: data.dataset1.map((_, i) => i),
-              colorscale: 'Viridis'
-            }
+            ...layout,
+            title: { text: data.title, font: { size: 18, color: '#fff' } }
           }
-        ],
-        {
-          ...layout,
-          title: { text: '두 데이터의 관계 확인', font: { size: 16, color: '#fff' } },
-          xaxis: { title: data.file1, color: '#a78bfa' },
-          yaxis: { title: data.file2, color: '#a78bfa' }
-        }
-      );
+        );
+      }
+    } else if (data.type === 'multi') {
+      // 상관관계 산점도
+      if (!data.dataset1 || !data.dataset2 || data.dataset1.length === 0 || data.dataset2.length === 0) {
+        console.warn('Multi dataset missing or empty');
+        return;
+      }
+
+      if (isMounted) {
+        Plotly.newPlot(
+          div,
+          [
+            {
+              x: data.dataset1.map((d) => d.value),
+              y: data.dataset2.map((d) => d.value),
+              mode: 'markers',
+              type: 'scatter',
+              name: '데이터 포인트',
+              marker: {
+                size: 12,
+                color: data.dataset1.map((_, i) => i),
+                colorscale: 'Viridis'
+              }
+            }
+          ],
+          {
+            ...layout,
+            title: { text: '두 데이터의 관계 확인', font: { size: 16, color: '#fff' } },
+            xaxis: { ...layout.xaxis, title: data.file1 },
+            yaxis: { ...layout.yaxis, title: data.file2 }
+          }
+        );
+      }
     }
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (div && Plotly) {
+        try {
+          Plotly.purge(div);
+        } catch (error) {
+          console.error('Error purging chart:', error);
+        }
+      }
+    };
   }, [data, chartType, plotlyLoaded, Plotly, chartDivId]);
 
   return null;
