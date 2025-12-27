@@ -97,12 +97,12 @@ const Intro = ({ onKosisDataSelect, onFileSelect, onDrag, onDrop, dragActive }) 
               통계 데이터를 CSV나 Excel 형식으로 다운로드하려면 KOSIS 국가통계포털을 이용하세요.
             </p>
             <a
-              href="https://kosis.kr"
+              href="https://kosis.kr/edu"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg transition text-sm"
             >
-              🌐 KOSIS 국가통계포털 열기
+              🌐 KOSIS 교육통계 열기
             </a>
           </div>
 
