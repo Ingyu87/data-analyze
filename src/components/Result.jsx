@@ -141,69 +141,138 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
           onRenderingChange={setIsChartRendering}
         />
         
-        {/* 그래프 축 설명 */}
-        {analysisResult.type === 'single' && analysisResult.xLabel && analysisResult.yLabel && (
+        {/* 그래프 축 설명 - 초등학생 눈높이 */}
+        {analysisResult.type === 'single' && analysisResult.dataset && analysisResult.dataset.length > 0 && (
           <div className="mt-4 p-4 bg-purple-900/30 rounded-lg border border-purple-500/30">
-            <h4 className="text-purple-200 font-bold mb-2">📐 그래프 읽는 방법</h4>
-            <div className="space-y-2 text-sm text-purple-100">
-              <p>
-                <strong className="text-yellow-300">가로축 (왼쪽에서 오른쪽):</strong> {analysisResult.xLabel}
-                <span className="text-purple-300 ml-2">→ 각 항목의 이름을 나타내요</span>
-              </p>
-              <p>
-                <strong className="text-yellow-300">세로축 (아래에서 위):</strong> {analysisResult.yLabel}
-                <span className="text-purple-300 ml-2">→ 각 항목의 크기나 수치를 나타내요</span>
-              </p>
-              <div className="mt-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30">
-                <p className="text-yellow-200 font-bold mb-2">💡 숫자가 의미하는 것:</p>
-                <p className="text-purple-100 text-sm mb-2">
-                  그래프 위에 표시된 숫자는 <strong className="text-yellow-300">각 항목의 실제 값</strong>을 나타내요.
+            <h4 className="text-purple-200 font-bold mb-3 text-lg">📐 그래프 읽는 방법</h4>
+            
+            {/* 축 설명 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <div className="p-3 bg-blue-900/30 rounded-lg border border-blue-500/30">
+                <p className="text-blue-300 font-bold text-sm mb-1">➡️ 가로축 (아래쪽)</p>
+                <p className="text-purple-100 text-sm">
+                  <strong className="text-yellow-300">{analysisResult.xLabel || '항목'}</strong>을 보여줘요
                 </p>
-                <ul className="text-purple-100 text-sm space-y-1 list-disc list-inside">
-                  {chartType === 'line' && (
-                    <>
-                      <li>선이 <strong className="text-green-300">위로 올라가면</strong> 숫자가 <strong className="text-green-300">커진다</strong>는 뜻이에요</li>
-                      <li>선이 <strong className="text-red-300">아래로 내려가면</strong> 숫자가 <strong className="text-red-300">작아진다</strong>는 뜻이에요</li>
-                      <li>예: 그래프에서 "2020년: 100"이라고 표시되면, 2020년의 값이 100이라는 뜻이에요</li>
-                    </>
-                  )}
-                  {chartType === 'bar' && (
-                    <>
-                      <li>막대가 <strong className="text-green-300">길수록</strong> 숫자가 <strong className="text-green-300">크다</strong>는 뜻이에요</li>
-                      <li>막대가 <strong className="text-red-300">짧을수록</strong> 숫자가 <strong className="text-red-300">작다</strong>는 뜻이에요</li>
-                      <li>예: 그래프에서 "서울: 500"이라고 표시되면, 서울의 값이 500이라는 뜻이에요</li>
-                    </>
-                  )}
-                  {chartType === 'pie' && (
-                    <>
-                      <li>각 조각의 크기가 <strong className="text-green-300">클수록</strong> 전체 중에서 차지하는 <strong className="text-green-300">비율이 크다</strong>는 뜻이에요</li>
-                      <li>예: 그래프에서 "사과: 30%"라고 표시되면, 전체 중에서 사과가 30%를 차지한다는 뜻이에요</li>
-                    </>
-                  )}
-                  {chartType === 'pictograph' && (
-                    <>
-                      <li>그림이 <strong className="text-green-300">많을수록</strong> 숫자가 <strong className="text-green-300">크다</strong>는 뜻이에요</li>
-                      <li>예: 그래프에서 "강아지: 5개"라고 표시되면, 강아지가 5마리라는 뜻이에요</li>
-                    </>
-                  )}
-                </ul>
+                <p className="text-purple-300 text-xs mt-1">
+                  예: {analysisResult.dataset[0]?.originalLabel || analysisResult.dataset[0]?.label || '첫 번째 항목'}
+                </p>
               </div>
-              {analysisResult.dataset && analysisResult.dataset.length > 0 && (
-                <div className="mt-3 p-3 bg-purple-800/30 rounded border border-purple-500/20">
-                  <p className="text-xs text-purple-200 mb-2"><strong>📊 데이터 예시:</strong></p>
-                  <div className="space-y-1 text-xs text-purple-100">
-                    {analysisResult.dataset.slice(0, 5).map((d, idx) => (
-                      <p key={idx}>
-                        <span className="text-yellow-300">{d.originalLabel || d.label}:</span> {d.value.toLocaleString()}
-                        <span className="text-purple-300 ml-2">({analysisResult.yLabel})</span>
-                      </p>
-                    ))}
-                    {analysisResult.dataset.length > 5 && (
-                      <p className="text-purple-300">... 외 {analysisResult.dataset.length - 5}개 항목</p>
-                    )}
+              <div className="p-3 bg-green-900/30 rounded-lg border border-green-500/30">
+                <p className="text-green-300 font-bold text-sm mb-1">⬆️ 세로축 (왼쪽)</p>
+                <p className="text-purple-100 text-sm">
+                  <strong className="text-yellow-300">{analysisResult.yLabel || '값'}</strong>을 보여줘요
+                </p>
+                <p className="text-purple-300 text-xs mt-1">
+                  숫자가 클수록 위로 올라가요!
+                </p>
+              </div>
+            </div>
+            
+            {/* 숫자의 의미 - 실제 데이터 기반 설명 */}
+            <div className="p-4 bg-yellow-900/30 rounded-lg border border-yellow-500/50">
+              <p className="text-yellow-200 font-bold mb-3 text-base">💡 그래프 속 숫자가 말해주는 것</p>
+              
+              {/* 데이터 기반 구체적 설명 */}
+              {(() => {
+                const data = analysisResult.dataset;
+                const maxItem = data.reduce((max, d) => d.value > max.value ? d : max, data[0]);
+                const minItem = data.reduce((min, d) => d.value < min.value ? d : min, data[0]);
+                const total = data.reduce((sum, d) => sum + d.value, 0);
+                const avg = total / data.length;
+                
+                return (
+                  <div className="space-y-3">
+                    {/* 가장 큰 값 */}
+                    <div className="flex items-start gap-2 p-2 bg-green-900/30 rounded">
+                      <span className="text-2xl">🏆</span>
+                      <div>
+                        <p className="text-green-300 font-bold text-sm">가장 큰 값</p>
+                        <p className="text-purple-100 text-sm">
+                          <strong className="text-yellow-300">{maxItem.originalLabel || maxItem.label}</strong>이(가) 
+                          <strong className="text-green-300 text-lg mx-1">{maxItem.value.toLocaleString()}</strong>
+                          {analysisResult.yLabel && <span>({analysisResult.yLabel})</span>}으로 가장 커요!
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* 가장 작은 값 */}
+                    <div className="flex items-start gap-2 p-2 bg-red-900/30 rounded">
+                      <span className="text-2xl">📍</span>
+                      <div>
+                        <p className="text-red-300 font-bold text-sm">가장 작은 값</p>
+                        <p className="text-purple-100 text-sm">
+                          <strong className="text-yellow-300">{minItem.originalLabel || minItem.label}</strong>이(가) 
+                          <strong className="text-red-300 text-lg mx-1">{minItem.value.toLocaleString()}</strong>
+                          {analysisResult.yLabel && <span>({analysisResult.yLabel})</span>}으로 가장 작아요
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* 차이 */}
+                    <div className="flex items-start gap-2 p-2 bg-purple-900/30 rounded">
+                      <span className="text-2xl">📊</span>
+                      <div>
+                        <p className="text-purple-300 font-bold text-sm">가장 큰 것과 작은 것의 차이</p>
+                        <p className="text-purple-100 text-sm">
+                          {maxItem.value.toLocaleString()} - {minItem.value.toLocaleString()} = 
+                          <strong className="text-yellow-300 text-lg mx-1">{(maxItem.value - minItem.value).toLocaleString()}</strong>
+                          만큼 차이가 나요!
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* 평균 */}
+                    <div className="flex items-start gap-2 p-2 bg-blue-900/30 rounded">
+                      <span className="text-2xl">📈</span>
+                      <div>
+                        <p className="text-blue-300 font-bold text-sm">전체 평균</p>
+                        <p className="text-purple-100 text-sm">
+                          모든 값을 더해서 나누면 평균은 약 
+                          <strong className="text-blue-300 text-lg mx-1">{Math.round(avg).toLocaleString()}</strong>
+                          {analysisResult.yLabel && <span>({analysisResult.yLabel})</span>}이에요
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
+              
+              {/* 그래프 타입별 읽는 법 */}
+              <div className="mt-4 p-3 bg-black/30 rounded border border-purple-500/30">
+                <p className="text-purple-200 font-bold text-sm mb-2">📖 {
+                  chartType === 'line' ? '꺾은선 그래프' :
+                  chartType === 'bar' ? '막대 그래프' :
+                  chartType === 'pie' ? '원그래프' : '그림그래프'
+                } 읽는 법:</p>
+                {chartType === 'line' && (
+                  <ul className="text-purple-100 text-sm space-y-1 list-none">
+                    <li>📈 선이 <span className="text-green-300 font-bold">올라가면</span> → 숫자가 <span className="text-green-300 font-bold">커졌어요!</span></li>
+                    <li>📉 선이 <span className="text-red-300 font-bold">내려가면</span> → 숫자가 <span className="text-red-300 font-bold">작아졌어요!</span></li>
+                    <li>➡️ 선이 <span className="text-yellow-300 font-bold">평평하면</span> → 숫자가 <span className="text-yellow-300 font-bold">비슷해요!</span></li>
+                  </ul>
+                )}
+                {chartType === 'bar' && (
+                  <ul className="text-purple-100 text-sm space-y-1 list-none">
+                    <li>📊 막대가 <span className="text-green-300 font-bold">길수록</span> → 숫자가 <span className="text-green-300 font-bold">커요!</span></li>
+                    <li>📊 막대가 <span className="text-red-300 font-bold">짧을수록</span> → 숫자가 <span className="text-red-300 font-bold">작아요!</span></li>
+                    <li>👀 막대 끝에 있는 숫자가 그 항목의 값이에요</li>
+                  </ul>
+                )}
+                {chartType === 'pie' && (
+                  <ul className="text-purple-100 text-sm space-y-1 list-none">
+                    <li>🥧 조각이 <span className="text-green-300 font-bold">클수록</span> → 차지하는 비율이 <span className="text-green-300 font-bold">높아요!</span></li>
+                    <li>🥧 조각이 <span className="text-red-300 font-bold">작을수록</span> → 차지하는 비율이 <span className="text-red-300 font-bold">낮아요!</span></li>
+                    <li>💯 모든 조각을 합치면 100%가 돼요</li>
+                  </ul>
+                )}
+                {chartType === 'pictograph' && (
+                  <ul className="text-purple-100 text-sm space-y-1 list-none">
+                    <li>🎨 그림이 <span className="text-green-300 font-bold">많을수록</span> → 숫자가 <span className="text-green-300 font-bold">커요!</span></li>
+                    <li>🎨 그림이 <span className="text-red-300 font-bold">적을수록</span> → 숫자가 <span className="text-red-300 font-bold">작아요!</span></li>
+                    <li>🔢 그림 개수를 세어보면 값을 알 수 있어요</li>
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -1,285 +1,330 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRenderingChange }) => {
   const [plotlyLoaded, setPlotlyLoaded] = useState(false);
-  const [Plotly, setPlotly] = useState(null);
-  const [isRendering, setIsRendering] = useState(false);
+  const plotlyRef = useRef(null);
+  const mountedRef = useRef(true);
+  const renderAttemptRef = useRef(0);
 
-  // Lazy load Plotly
+  // Plotly 로드
   useEffect(() => {
-    if (plotlyLoaded && Plotly) return; // 이미 로드됨
+    mountedRef.current = true;
     
-    let cancelled = false;
-    if (onRenderingChange) onRenderingChange(true);
-    
-    import('plotly.js').then((plotlyModule) => {
-      if (cancelled) return;
-      
-      // Plotly 모듈 구조 확인
-      let plotly = null;
-      if (plotlyModule.default) {
-        plotly = plotlyModule.default;
-      } else if (plotlyModule.newPlot) {
-        plotly = plotlyModule;
-      } else if (typeof plotlyModule === 'object' && plotlyModule.Plotly) {
-        plotly = plotlyModule.Plotly;
+    const loadPlotly = async () => {
+      if (plotlyRef.current) {
+        setPlotlyLoaded(true);
+        return;
       }
       
-      if (plotly && typeof plotly.newPlot === 'function') {
-        setPlotly(plotly);
-        setPlotlyLoaded(true);
-        if (onRenderingChange && !data) onRenderingChange(false);
-      } else {
-        console.error('Plotly module structure invalid:', plotlyModule);
+      if (onRenderingChange) onRenderingChange(true);
+      
+      try {
+        const plotlyModule = await import('plotly.js');
+        
+        // 여러 가능한 export 구조 확인
+        let plotly = null;
+        if (plotlyModule.default && typeof plotlyModule.default.newPlot === 'function') {
+          plotly = plotlyModule.default;
+        } else if (typeof plotlyModule.newPlot === 'function') {
+          plotly = plotlyModule;
+        } else if (plotlyModule.Plotly && typeof plotlyModule.Plotly.newPlot === 'function') {
+          plotly = plotlyModule.Plotly;
+        } else if (window.Plotly && typeof window.Plotly.newPlot === 'function') {
+          plotly = window.Plotly;
+        }
+        
+        if (plotly && typeof plotly.newPlot === 'function') {
+          plotlyRef.current = plotly;
+          if (mountedRef.current) {
+            setPlotlyLoaded(true);
+            console.log('Plotly 로드 완료');
+          }
+        } else {
+          console.error('Plotly 모듈 구조 오류:', Object.keys(plotlyModule));
+          if (onRenderingChange) onRenderingChange(false);
+        }
+      } catch (error) {
+        console.error('Plotly 로드 실패:', error);
         if (onRenderingChange) onRenderingChange(false);
       }
-    }).catch((error) => {
-      console.error('Failed to load Plotly:', error);
-      if (onRenderingChange) onRenderingChange(false);
-    });
+    };
+    
+    loadPlotly();
     
     return () => {
-      cancelled = true;
+      mountedRef.current = false;
     };
   }, []);
 
+  // 그래프 렌더링
   useEffect(() => {
-    if (!plotlyLoaded || !Plotly || !data) {
-      if (onRenderingChange) onRenderingChange(false);
+    if (!plotlyLoaded || !plotlyRef.current || !data) {
       return;
     }
     
-    const div = document.getElementById(chartDivId);
-    if (!div) {
-      console.warn(`Chart div not found: ${chartDivId}`);
-      if (onRenderingChange) onRenderingChange(false);
-      return;
-    }
-
-    // Cleanup flag to prevent React error #130
-    let isMounted = true;
-    let plotlyInstance = null;
+    const Plotly = plotlyRef.current;
     
-    // 렌더링 시작
-    setIsRendering(true);
-    if (onRenderingChange) onRenderingChange(true);
-
-    const layout = {
-      paper_bgcolor: 'rgba(0,0,0,0)',
-      plot_bgcolor: 'rgba(0,0,0,0)',
-      font: { color: '#e9d5ff' },
-      xaxis: { 
-        showgrid: false, 
-        color: '#a78bfa',
-        title: data.xLabel || '항목',
-        titlefont: { size: 14, color: '#e9d5ff' }
-      },
-      yaxis: { 
-        showgrid: true, 
-        gridcolor: '#4c1d95', 
-        color: '#a78bfa',
-        title: data.yLabel || '값',
-        titlefont: { size: 14, color: '#e9d5ff' }
-      },
-      margin: { t: 40, r: 20, l: 60, b: 60 }
-    };
-
-    if (data.type === 'single') {
-      if (!data.dataset || data.dataset.length === 0) {
-        console.warn('No dataset available for single chart');
+    // div가 준비될 때까지 대기하는 함수
+    const renderChart = () => {
+      const div = document.getElementById(chartDivId);
+      
+      if (!div) {
+        renderAttemptRef.current += 1;
+        if (renderAttemptRef.current < 10) {
+          // 최대 10번 재시도 (1초)
+          setTimeout(renderChart, 100);
+          return;
+        }
+        console.warn(`차트 div를 찾을 수 없음: ${chartDivId}`);
+        if (onRenderingChange) onRenderingChange(false);
         return;
       }
+      
+      // 렌더링 시작
+      if (onRenderingChange) onRenderingChange(true);
 
-      const x = data.dataset.map((d) => d.originalLabel || d.label);
-      const y = data.dataset.map((d) => d.value);
-      
-      const traces = [];
-      
-      if (chartType === 'line') {
-        // 꺾은선 그래프
-        traces.push({
-          x,
-          y,
-          mode: 'lines+markers',
-          name: '현재 기록',
-          line: { color: '#c084fc', width: 3 },
-          marker: { size: 8, color: '#c084fc' },
-          type: 'scatter'
-        });
-        
-        // 미래 예측선
-        if (data.nextVal !== undefined) {
-          traces.push({
-            x: [x[x.length - 1], '미래'],
-            y: [y[y.length - 1], data.nextVal],
-            mode: 'lines+markers',
-            name: '예언된 미래',
-            line: { color: '#fbbf24', width: 3, dash: 'dot' },
-            marker: { size: 10, symbol: 'star', color: '#fbbf24' },
-            type: 'scatter'
-          });
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#e9d5ff', family: 'Pretendard, -apple-system, sans-serif' },
+        xaxis: { 
+          showgrid: false, 
+          color: '#a78bfa',
+          title: { text: data.xLabel || '항목', font: { size: 12, color: '#e9d5ff' } },
+          tickfont: { size: 10 }
+        },
+        yaxis: { 
+          showgrid: true, 
+          gridcolor: '#4c1d95', 
+          color: '#a78bfa',
+          title: { text: data.yLabel || '값', font: { size: 12, color: '#e9d5ff' } },
+          tickfont: { size: 10 }
+        },
+        margin: { t: 50, r: 20, l: 60, b: 80 },
+        showlegend: true,
+        legend: { 
+          orientation: 'h', 
+          y: -0.2,
+          font: { size: 10 }
         }
-      } else if (chartType === 'bar') {
-        // 막대 그래프
-        traces.push({
-          x,
-          y,
-          type: 'bar',
-          name: '현재 기록',
-          marker: { color: '#c084fc' }
-        });
-        
-        // 미래 예측 막대
-        if (data.nextVal !== undefined) {
-          traces.push({
-            x: ['미래'],
-            y: [data.nextVal],
-            type: 'bar',
-            name: '예언된 미래',
-            marker: { color: '#fbbf24' }
-          });
-        }
-      } else if (chartType === 'pie') {
-        // 원그래프
-        const total = y.reduce((sum, val) => sum + val, 0);
-        const pieData = x.map((label, i) => ({
-          labels: label,
-          values: y[i],
-          text: `${label}: ${y[i]} (${((y[i] / total) * 100).toFixed(1)}%)`,
-          textinfo: 'label+percent'
-        }));
-        
-        traces.push({
-          labels: x,
-          values: y,
-          type: 'pie',
-          name: '현재 기록',
-          marker: {
-            colors: ['#c084fc', '#a855f7', '#9333ea', '#7e22ce', '#6b21a8', '#581c87']
-          },
-          textinfo: 'label+percent',
-          hovertemplate: '<b>%{label}</b><br>값: %{value}<br>비율: %{percent}<extra></extra>'
-        });
-      } else if (chartType === 'pictograph') {
-        // 그림그래프는 막대 그래프로 대체 (Plotly에서 직접 지원하지 않음)
-        // 아이콘을 사용한 막대 그래프로 표현
-        traces.push({
-          x,
-          y,
-          type: 'bar',
-          name: '현재 기록',
-          marker: {
-            color: '#c084fc',
-            pattern: {
-              shape: 'x',
-              fillmode: 'overlay'
-            }
-          }
-        });
-      }
-      
-      if (isMounted) {
-        // 기존 그래프 제거
-        try {
-          Plotly.purge(div);
-        } catch (e) {
-          // 무시
-        }
-        
-        console.log('Rendering chart with', traces.length, 'traces,', x.length, 'data points');
-        Plotly.newPlot(
-          div,
-          traces,
-          {
-            ...layout,
-            title: { text: data.title, font: { size: 18, color: '#fff' } }
-          }
-        ).then(() => {
-          if (isMounted) {
-            plotlyInstance = div;
-            setIsRendering(false);
-            if (onRenderingChange) onRenderingChange(false);
-            console.log('Chart rendered successfully');
-          }
-        }).catch((error) => {
-          console.error('Plotly rendering error:', error);
-          if (isMounted) {
-            setIsRendering(false);
-            if (onRenderingChange) onRenderingChange(false);
-          }
-        });
-      }
-    } else if (data.type === 'multi') {
-      // 상관관계 산점도
-      if (!data.dataset1 || !data.dataset2 || data.dataset1.length === 0 || data.dataset2.length === 0) {
-        console.warn('Multi dataset missing or empty');
-        return;
+      };
+
+      const config = {
+        responsive: true,
+        displayModeBar: false
+      };
+
+      // 기존 그래프 정리
+      try {
+        Plotly.purge(div);
+      } catch (e) {
+        // 무시
       }
 
-      if (isMounted) {
-        // 기존 그래프 제거
-        try {
-          Plotly.purge(div);
-        } catch (e) {
-          // 무시
+      if (data.type === 'single') {
+        if (!data.dataset || data.dataset.length === 0) {
+          console.warn('단일 차트용 데이터셋 없음');
+          if (onRenderingChange) onRenderingChange(false);
+          return;
         }
+
+        const labels = data.dataset.map((d) => d.originalLabel || d.label || '');
+        const values = data.dataset.map((d) => d.value);
         
-        Plotly.newPlot(
-          div,
-          [
-            {
-              x: data.dataset1.map((d) => d.value),
-              y: data.dataset2.map((d) => d.value),
-              mode: 'markers',
+        const traces = [];
+        
+        if (chartType === 'line') {
+          // 꺾은선 그래프
+          traces.push({
+            x: labels,
+            y: values,
+            mode: 'lines+markers+text',
+            name: '데이터',
+            line: { color: '#c084fc', width: 3 },
+            marker: { size: 10, color: '#c084fc' },
+            text: values.map(v => v.toLocaleString()),
+            textposition: 'top center',
+            textfont: { size: 9, color: '#fbbf24' },
+            type: 'scatter',
+            hovertemplate: '<b>%{x}</b><br>값: %{y:,.0f}<extra></extra>'
+          });
+          
+          // 미래 예측선
+          if (data.nextVal !== undefined && !isNaN(data.nextVal)) {
+            traces.push({
+              x: [labels[labels.length - 1], '다음 예측'],
+              y: [values[values.length - 1], data.nextVal],
+              mode: 'lines+markers+text',
+              name: '예측',
+              line: { color: '#fbbf24', width: 3, dash: 'dot' },
+              marker: { size: 12, symbol: 'star', color: '#fbbf24' },
+              text: ['', data.nextVal.toLocaleString()],
+              textposition: 'top center',
+              textfont: { size: 10, color: '#fbbf24' },
               type: 'scatter',
-              name: '데이터 포인트',
-              marker: {
-                size: 12,
-                color: data.dataset1.map((_, i) => i),
-                colorscale: 'Viridis'
+              hovertemplate: '<b>%{x}</b><br>예측값: %{y:,.0f}<extra></extra>'
+            });
+          }
+        } else if (chartType === 'bar') {
+          // 막대 그래프
+          traces.push({
+            x: labels,
+            y: values,
+            type: 'bar',
+            name: '데이터',
+            marker: { 
+              color: values.map((_, i) => {
+                const colors = ['#c084fc', '#a855f7', '#9333ea', '#7e22ce', '#6b21a8', '#581c87', '#d946ef', '#ec4899'];
+                return colors[i % colors.length];
+              })
+            },
+            text: values.map(v => v.toLocaleString()),
+            textposition: 'outside',
+            textfont: { size: 10, color: '#fbbf24' },
+            hovertemplate: '<b>%{x}</b><br>값: %{y:,.0f}<extra></extra>'
+          });
+          
+          // 미래 예측 막대
+          if (data.nextVal !== undefined && !isNaN(data.nextVal)) {
+            traces.push({
+              x: ['다음 예측'],
+              y: [data.nextVal],
+              type: 'bar',
+              name: '예측',
+              marker: { color: '#fbbf24' },
+              text: [data.nextVal.toLocaleString()],
+              textposition: 'outside',
+              textfont: { size: 10, color: '#fbbf24' },
+              hovertemplate: '<b>다음 예측</b><br>예측값: %{y:,.0f}<extra></extra>'
+            });
+          }
+        } else if (chartType === 'pie') {
+          // 원그래프
+          traces.push({
+            labels: labels,
+            values: values,
+            type: 'pie',
+            name: '데이터',
+            marker: {
+              colors: ['#c084fc', '#a855f7', '#9333ea', '#7e22ce', '#6b21a8', '#581c87', '#d946ef', '#ec4899']
+            },
+            textinfo: 'label+percent',
+            textposition: 'inside',
+            textfont: { size: 11, color: '#fff' },
+            hovertemplate: '<b>%{label}</b><br>값: %{value:,.0f}<br>비율: %{percent}<extra></extra>',
+            hole: 0.3
+          });
+          
+          // 원그래프는 레이아웃 수정
+          layout.showlegend = true;
+          layout.legend = { orientation: 'v', x: 1, y: 0.5, font: { size: 10 } };
+        } else if (chartType === 'pictograph') {
+          // 그림그래프 (막대 그래프로 시각화하되 패턴 사용)
+          traces.push({
+            x: labels,
+            y: values,
+            type: 'bar',
+            name: '데이터',
+            marker: { 
+              color: '#c084fc',
+              pattern: {
+                shape: '/',
+                solidity: 0.5
               }
-            }
-          ],
-          {
-            ...layout,
-            title: { text: '두 데이터의 관계 확인', font: { size: 16, color: '#fff' } },
-            xaxis: { ...layout.xaxis, title: data.file1 },
-            yaxis: { ...layout.yaxis, title: data.file2 }
+            },
+            text: values.map(v => `${v.toLocaleString()} 🔹`),
+            textposition: 'outside',
+            textfont: { size: 10, color: '#fbbf24' },
+            hovertemplate: '<b>%{x}</b><br>값: %{y:,.0f}<extra></extra>'
+          });
+        }
+        
+        console.log(`차트 렌더링: ${traces.length}개 trace, ${labels.length}개 데이터 포인트, 타입: ${chartType}`);
+        
+        Plotly.newPlot(div, traces, {
+          ...layout,
+          title: { 
+            text: data.title || '데이터 시각화', 
+            font: { size: 16, color: '#fff' },
+            y: 0.95
           }
-        ).then(() => {
-          if (isMounted) {
-            plotlyInstance = div;
-            setIsRendering(false);
-            if (onRenderingChange) onRenderingChange(false);
-          }
+        }, config).then(() => {
+          console.log('차트 렌더링 완료');
+          if (onRenderingChange) onRenderingChange(false);
         }).catch((error) => {
-          console.error('Plotly rendering error:', error);
-          if (isMounted) {
-            setIsRendering(false);
-            if (onRenderingChange) onRenderingChange(false);
-          }
+          console.error('Plotly 렌더링 오류:', error);
+          if (onRenderingChange) onRenderingChange(false);
+        });
+        
+      } else if (data.type === 'multi') {
+        // 상관관계 산점도
+        if (!data.dataset1 || !data.dataset2 || data.dataset1.length === 0 || data.dataset2.length === 0) {
+          console.warn('다중 데이터셋 없음');
+          if (onRenderingChange) onRenderingChange(false);
+          return;
+        }
+
+        const xValues = data.dataset1.map((d) => d.value);
+        const yValues = data.dataset2.map((d) => d.value);
+        const labels = data.dataset1.map((d, i) => d.label || data.dataset2[i]?.label || `데이터 ${i+1}`);
+        
+        Plotly.newPlot(div, [{
+          x: xValues,
+          y: yValues,
+          mode: 'markers+text',
+          type: 'scatter',
+          name: '데이터 포인트',
+          text: labels,
+          textposition: 'top center',
+          textfont: { size: 9, color: '#e9d5ff' },
+          marker: {
+            size: 14,
+            color: xValues.map((_, i) => i),
+            colorscale: 'Viridis',
+            showscale: true,
+            colorbar: { title: '순서', tickfont: { color: '#e9d5ff' } }
+          },
+          hovertemplate: '<b>%{text}</b><br>' + (data.file1 || 'X') + ': %{x:,.0f}<br>' + (data.file2 || 'Y') + ': %{y:,.0f}<extra></extra>'
+        }], {
+          ...layout,
+          title: { 
+            text: '두 데이터의 관계', 
+            font: { size: 16, color: '#fff' },
+            y: 0.95
+          },
+          xaxis: { ...layout.xaxis, title: { text: data.file1 || 'X축', font: { size: 12, color: '#e9d5ff' } } },
+          yaxis: { ...layout.yaxis, title: { text: data.file2 || 'Y축', font: { size: 12, color: '#e9d5ff' } } }
+        }, config).then(() => {
+          console.log('상관관계 차트 렌더링 완료');
+          if (onRenderingChange) onRenderingChange(false);
+        }).catch((error) => {
+          console.error('Plotly 렌더링 오류:', error);
+          if (onRenderingChange) onRenderingChange(false);
         });
       }
-    }
-
-    // Cleanup function
+    };
+    
+    // 렌더링 시도 초기화 후 시작
+    renderAttemptRef.current = 0;
+    
+    // 약간의 지연 후 렌더링 시작 (DOM이 준비되도록)
+    const timeoutId = setTimeout(renderChart, 50);
+    
+    // Cleanup
     return () => {
-      isMounted = false;
-      setIsRendering(false);
-      if (onRenderingChange) onRenderingChange(false);
-      if (div && Plotly) {
+      clearTimeout(timeoutId);
+      const div = document.getElementById(chartDivId);
+      if (div && plotlyRef.current) {
         try {
-          Plotly.purge(div);
-        } catch (error) {
-          console.error('Error purging chart:', error);
+          plotlyRef.current.purge(div);
+        } catch (e) {
+          // 무시
         }
       }
     };
-  }, [data, chartType, plotlyLoaded, Plotly, chartDivId, onRenderingChange]);
+  }, [data, chartType, plotlyLoaded, chartDivId, onRenderingChange]);
 
   return null;
 };
 
 export default ChartRender;
-
-
