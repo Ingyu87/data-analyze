@@ -1,10 +1,41 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
 import ChartRender from './ChartRender';
+import AIPrincipleCard from './AIPrincipleCard';
+import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
+import { generateQuestions, generateCorrelationQuestions } from '../utils/questionGenerator';
+import { generateReportPNG } from '../utils/reportGenerator';
+import Quiz from './Quiz';
 
-const Result = ({ analysisResult, onReset }) => {
-  const { RefreshCw } = Icons;
+const Result = ({ analysisResult, onReset, stagedFiles }) => {
+  const { RefreshCw, Download } = Icons;
   const [chartType, setChartType] = useState('line');
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizResults, setQuizResults] = useState(null);
+  
+  // 문제 생성
+  const questions = React.useMemo(() => {
+    if (!analysisResult) return [];
+    if (analysisResult.type === 'single') {
+      return generateQuestions(analysisResult);
+    } else {
+      return generateCorrelationQuestions(analysisResult);
+    }
+  }, [analysisResult]);
+  
+  const handleQuizComplete = (results) => {
+    setQuizResults(results);
+    setShowQuiz(false);
+  };
+  
+  const handleDownloadReport = async () => {
+    try {
+      await generateReportPNG(analysisResult, quizResults, stagedFiles);
+    } catch (error) {
+      console.error('보고서 생성 실패:', error);
+      alert('보고서 생성 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-12">

@@ -52,3 +52,15 @@
 {"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":1},"timestamp":1766848336566,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
 {"location":"App.jsx:480","message":"App render start","data":{"view":"lockdown","stagedFilesCount":1},"timestamp":1766848343742,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
 {"location":"App.jsx:480","message":"App render start","data":{"view":"lockdown","stagedFilesCount":1},"timestamp":1766848343743,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"intro","stagedFilesCount":0},"timestamp":1766848985397,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":1},"timestamp":1766848998941,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":1},"timestamp":1766848999015,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":2},"timestamp":1766849025776,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":2},"timestamp":1766849025774,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":1},"timestamp":1766849036009,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":1},"timestamp":1766849036016,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"result","stagedFilesCount":1},"timestamp":1766849044584,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"result","stagedFilesCount":1},"timestamp":1766849044590,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"intro","stagedFilesCount":0},"timestamp":1766849090879,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":1},"timestamp":1766849098469,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":1},"timestamp":1766849098561,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
