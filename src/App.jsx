@@ -501,10 +501,6 @@ const App = () => {
       <main className="w-full max-w-4xl z-10 min-h-[600px]">
         {view === 'intro' && (
           <Intro
-            onFileSelect={handleFileSelect}
-            dragActive={dragActive}
-            onDrag={handleDrag}
-            onDrop={handleDrop}
             onKosisDataSelect={handleKosisDataSelect}
           />
         )}

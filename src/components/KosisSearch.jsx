@@ -73,14 +73,24 @@ const KosisSearch = ({ onDataSelect }) => {
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-8 animate-fade-in">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
-          <span className="text-blue-400">📊</span>
+    <div className="glass-panel rounded-2xl p-12 animate-fade-in text-center">
+      <div className="mb-8">
+        <div className="mb-6 animate-float">
+          <img
+            src="https://cdn-icons-png.flaticon.com/512/867/867902.png"
+            alt="Data Analysis"
+            className="w-32 h-32 drop-shadow-2xl mx-auto"
+          />
+        </div>
+        <h2 className="text-3xl font-bold text-white mb-4 flex items-center justify-center gap-2">
+          <span className="text-blue-400 text-4xl">📊</span>
           KOSIS 국가통계포털 검색
         </h2>
-        <p className="text-purple-200 text-sm">
+        <p className="text-purple-200 text-lg mb-2">
           국가통계포털에서 통계 데이터를 검색하고 분석해보세요!
+        </p>
+        <p className="text-purple-300 text-sm">
+          출생아, 인구, 경제, 교육 등 다양한 통계를 검색할 수 있습니다
         </p>
       </div>
 
