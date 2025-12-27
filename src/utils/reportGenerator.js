@@ -2,7 +2,14 @@
  * 결과 보고서를 PNG로 생성합니다.
  */
 
-import html2canvas from 'html2canvas';
+// Lazy load html2canvas
+let html2canvasLib = null;
+const loadHtml2Canvas = async () => {
+  if (!html2canvasLib) {
+    html2canvasLib = (await import('html2canvas')).default;
+  }
+  return html2canvasLib;
+};
 
 /**
  * 결과 보고서를 PNG로 다운로드합니다.
@@ -29,6 +36,9 @@ export const generateReportPNG = async (analysisResult, quizResults, stagedFiles
   try {
     // 차트가 있는 경우 대기
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // html2canvas 로드
+    const html2canvas = await loadHtml2Canvas();
 
     // HTML을 캔버스로 변환
     const canvas = await html2canvas(tempDiv, {

@@ -1,8 +1,22 @@
-import React, { useEffect } from 'react';
-import Plotly from 'plotly.js';
+import React, { useEffect, useState } from 'react';
 
 const ChartRender = ({ data, chartType = 'line' }) => {
+  const [plotlyLoaded, setPlotlyLoaded] = useState(false);
+  const [Plotly, setPlotly] = useState(null);
+
+  // Lazy load Plotly
   useEffect(() => {
+    import('plotly.js').then((plotlyModule) => {
+      setPlotly(plotlyModule.default);
+      setPlotlyLoaded(true);
+    }).catch((error) => {
+      console.error('Failed to load Plotly:', error);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!plotlyLoaded || !Plotly) return;
+    
     const div = document.getElementById('chart-div');
     if (!div) return;
 
@@ -101,7 +115,7 @@ const ChartRender = ({ data, chartType = 'line' }) => {
         }
       );
     }
-  }, [data, chartType]);
+  }, [data, chartType, plotlyLoaded, Plotly]);
 
   return null;
 };
