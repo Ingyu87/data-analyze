@@ -79,6 +79,43 @@ const ChartRender = ({ data, chartType = 'line' }) => {
             marker: { color: '#fbbf24' }
           });
         }
+      } else if (chartType === 'pie') {
+        // 원그래프
+        const total = y.reduce((sum, val) => sum + val, 0);
+        const pieData = x.map((label, i) => ({
+          labels: label,
+          values: y[i],
+          text: `${label}: ${y[i]} (${((y[i] / total) * 100).toFixed(1)}%)`,
+          textinfo: 'label+percent'
+        }));
+        
+        traces.push({
+          labels: x,
+          values: y,
+          type: 'pie',
+          name: '현재 기록',
+          marker: {
+            colors: ['#c084fc', '#a855f7', '#9333ea', '#7e22ce', '#6b21a8', '#581c87']
+          },
+          textinfo: 'label+percent',
+          hovertemplate: '<b>%{label}</b><br>값: %{value}<br>비율: %{percent}<extra></extra>'
+        });
+      } else if (chartType === 'pictograph') {
+        // 그림그래프는 막대 그래프로 대체 (Plotly에서 직접 지원하지 않음)
+        // 아이콘을 사용한 막대 그래프로 표현
+        traces.push({
+          x,
+          y,
+          type: 'bar',
+          name: '현재 기록',
+          marker: {
+            color: '#c084fc',
+            pattern: {
+              shape: 'x',
+              fillmode: 'overlay'
+            }
+          }
+        });
       }
       
       Plotly.newPlot(

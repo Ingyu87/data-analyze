@@ -6,14 +6,18 @@ import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
 import { generateDynamicExample } from '../utils/aiPrincipleExampleGenerator';
 import { generateQuestions, generateCorrelationQuestions } from '../utils/questionGenerator';
 import { generateReportPNG } from '../utils/reportGenerator';
+import { getChartTypeInfo, getRecommendedChartType } from '../utils/chartTypeExplainer';
 import Quiz from './Quiz';
 
 const Result = ({ analysisResult, onReset, stagedFiles }) => {
   const { RefreshCw, Download } = Icons;
-  const [chartType, setChartType] = useState('line');
+  const [chartType, setChartType] = useState(() => 
+    analysisResult ? getRecommendedChartType(analysisResult) : 'line'
+  );
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizResults, setQuizResults] = useState(null);
   const [dynamicExamples, setDynamicExamples] = useState({});
+  const [showChartExplanation, setShowChartExplanation] = useState(true);
   
   // 동적 예시 생성
   useEffect(() => {
@@ -75,32 +79,74 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
             {analysisResult.type === 'single' ? '미래 예언 (Future)' : '결속 확인 (Connection)'}
           </h3>
           {analysisResult.type === 'single' && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setChartType('line')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  chartType === 'line'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-purple-900/50 text-purple-200 hover:bg-purple-800'
-                }`}
-              >
-                꺾은선 그래프
-              </button>
-              <button
-                onClick={() => setChartType('bar')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  chartType === 'bar'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-purple-900/50 text-purple-200 hover:bg-purple-800'
-                }`}
-              >
-                막대 그래프
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {['line', 'bar', 'pie', 'pictograph'].map((type) => {
+                const info = getChartTypeInfo(type, analysisResult);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setChartType(type)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1 ${
+                      chartType === type
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-900/50 text-purple-200 hover:bg-purple-800'
+                    }`}
+                    title={info.description}
+                  >
+                    <span>{info.icon}</span>
+                    <span>{info.name}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
         <div id="chart-div" className="w-full h-[400px] bg-black/20 rounded-lg mb-4"></div>
         <ChartRender data={analysisResult} chartType={chartType} />
+        
+        {/* 그래프 선택 이유 설명 */}
+        {showChartExplanation && analysisResult.type === 'single' && (
+          <div className="mt-4 p-4 bg-blue-900/20 rounded-lg border border-blue-500/30">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{getChartTypeInfo(chartType, analysisResult).icon}</span>
+                <h4 className="text-blue-300 font-bold">
+                  왜 {getChartTypeInfo(chartType, analysisResult).name}를 선택했나요?
+                </h4>
+              </div>
+              <button
+                onClick={() => setShowChartExplanation(false)}
+                className="text-blue-400 hover:text-blue-300 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-purple-100 text-sm mb-3">
+              {getChartTypeInfo(chartType, analysisResult).recommendation}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div className="bg-green-900/20 p-2 rounded border border-green-500/30">
+                <p className="text-green-300 font-semibold mb-1">✅ 장점</p>
+                <ul className="list-disc list-inside space-y-1 text-purple-200">
+                  {getChartTypeInfo(chartType, analysisResult).advantages.map((adv, idx) => (
+                    <li key={idx}>{adv}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-yellow-900/20 p-2 rounded border border-yellow-500/30">
+                <p className="text-yellow-300 font-semibold mb-1">⚠️ 단점</p>
+                <ul className="list-disc list-inside space-y-1 text-purple-200">
+                  {getChartTypeInfo(chartType, analysisResult).disadvantages.map((dis, idx) => (
+                    <li key={idx}>{dis}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <p className="text-purple-200 text-xs mt-2 italic">
+              💡 다른 그래프 버튼을 눌러서 비교해보세요!
+            </p>
+          </div>
+        )}
         
         {/* 그래프 관련 AI 원리 */}
         <div className="mt-4 pt-4 border-t border-purple-500/30">
