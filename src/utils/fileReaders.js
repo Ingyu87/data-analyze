@@ -1,10 +1,25 @@
-import * as pdfjsLib from 'pdfjs-dist';
-import * as XLSX from 'xlsx';
+// Lazy load libraries to avoid prototype errors during module initialization
+let pdfjsLib = null;
+let XLSX = null;
 
-// PDF.js worker 설정
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
-}
+// Lazy load PDF.js
+const loadPdfjs = async () => {
+  if (!pdfjsLib) {
+    pdfjsLib = await import('pdfjs-dist');
+    if (typeof window !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+    }
+  }
+  return pdfjsLib;
+};
+
+// Lazy load XLSX
+const loadXLSX = async () => {
+  if (!XLSX) {
+    XLSX = await import('xlsx');
+  }
+  return XLSX;
+};
 
 /**
  * PDF 파일에서 텍스트를 추출합니다.
@@ -13,8 +28,9 @@ if (typeof window !== 'undefined') {
  */
 export const extractTextFromPDF = async (file) => {
   try {
+    const pdfjs = await loadPdfjs();
     const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
     let fullText = "";
     const maxPages = Math.min(pdf.numPages, 3);
@@ -39,11 +55,12 @@ export const extractTextFromPDF = async (file) => {
  */
 export const extractTextFromExcel = async (file) => {
   try {
+    const xlsxLib = await loadXLSX();
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer);
+    const workbook = xlsxLib.read(arrayBuffer);
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
-    return XLSX.utils.sheet_to_csv(worksheet);
+    return xlsxLib.utils.sheet_to_csv(worksheet);
   } catch (e) {
     console.error("Excel 읽기 오류:", e);
     return null;
@@ -97,8 +114,9 @@ export const renderPageToCanvas = async (file, canvas) => {
         img.onerror = () => resolve(false);
       });
     } else if (file.type === 'application/pdf') {
+      const pdfjs = await loadPdfjs();
       const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 1.5 });
