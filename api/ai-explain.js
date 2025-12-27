@@ -168,27 +168,82 @@ ${dataContext}
       // 보고서 피드백
       const { reportData, analysisResult } = data;
       
-      prompt = `당신은 초등학생의 보고서를 평가하는 친절한 선생님입니다. 다음 보고서를 읽고 피드백을 작성해주세요.
+      // #region agent log
+      console.log('Report feedback request:', {
+        hasReportData: !!reportData,
+        hasAnalysisResult: !!analysisResult,
+        reportDataKeys: reportData ? Object.keys(reportData) : [],
+        analysisResultType: analysisResult?.type,
+        datasetLength: analysisResult?.dataset?.length || analysisResult?.dataset1?.length || 0
+      });
+      // #endregion
+      
+      // 실제 그래프 데이터 정보 추출
+      let graphDataInfo = '';
+      if (analysisResult) {
+        if (analysisResult.type === 'single' && analysisResult.dataset) {
+          // 단일 데이터셋
+          const sampleData = analysisResult.dataset.slice(0, 10).map(d => 
+            `${d.label || d.originalLabel || '항목'}: ${d.value}`
+          ).join(', ');
+          const allData = analysisResult.dataset.map(d => d.value);
+          const maxVal = Math.max(...allData);
+          const minVal = Math.min(...allData);
+          const avgVal = allData.reduce((a, b) => a + b, 0) / allData.length;
+          
+          graphDataInfo = `실제 그래프 데이터:
+- 데이터 이름: ${analysisResult.title || '데이터'}
+- 데이터 포인트 수: ${analysisResult.dataset.length}개
+- 데이터 예시: ${sampleData}${analysisResult.dataset.length > 10 ? '...' : ''}
+- 최대값: ${maxVal.toFixed(1)}
+- 최소값: ${minVal.toFixed(1)}
+- 평균값: ${avgVal.toFixed(1)}
+- 변화 추세: ${analysisResult.trendDesc || analysisResult.trend || '알 수 없음'}
+- 예측된 다음 값: ${analysisResult.nextVal !== undefined ? analysisResult.nextVal.toFixed(1) : 'N/A'}
+- 선택한 그래프 타입: ${reportData.selectedChartType || 'line'}`;
+        } else if (analysisResult.type === 'multi') {
+          // 복수 데이터셋 (상관관계)
+          const data1Sample = analysisResult.dataset1?.slice(0, 5).map(d => d.value).join(', ') || '';
+          const data2Sample = analysisResult.dataset2?.slice(0, 5).map(d => d.value).join(', ') || '';
+          
+          graphDataInfo = `실제 그래프 데이터:
+- 데이터 1: ${analysisResult.file1 || '데이터1'}
+- 데이터 2: ${analysisResult.file2 || '데이터2'}
+- 상관계수: ${analysisResult.correlation?.toFixed(2) || 'N/A'}
+- 관계 설명: ${analysisResult.corrTitle || 'N/A'}
+- 데이터 1 예시: ${data1Sample}${analysisResult.dataset1?.length > 5 ? '...' : ''}
+- 데이터 2 예시: ${data2Sample}${analysisResult.dataset2?.length > 5 ? '...' : ''}
+- 선택한 그래프 타입: ${reportData.selectedChartType || 'line'}`;
+        }
+      }
+      
+      prompt = `당신은 초등학생의 보고서를 평가하는 친절한 선생님입니다. 다음 보고서와 실제 그래프 데이터를 읽고 피드백을 작성해주세요.
 
-보고서 제목: ${reportData.title}
-데이터 선정 이유: ${reportData.dataSelectionReason}
-선택한 그래프: ${reportData.selectedChartType}
-그래프 선택 이유: ${reportData.chartSelectionReason}
-그래프를 통해 알 수 있는 사실: ${reportData.findings}
-미래 예측: ${reportData.futurePrediction}
+${graphDataInfo}
+
+학생이 작성한 보고서:
+- 보고서 제목: ${reportData.title}
+- 데이터 선정 이유: ${reportData.dataSelectionReason}
+- 선택한 그래프: ${reportData.selectedChartType}
+- 그래프 선택 이유: ${reportData.chartSelectionReason}
+- 그래프를 통해 알 수 있는 사실: ${reportData.findings}
+- 미래 예측: ${reportData.futurePrediction}
 
 요구사항:
-1. 초등학생 수준에 맞게 친절하고 격려하는 톤으로 작성하세요
-2. 잘한 점을 구체적으로 찾아서 칭찬해주세요
-3. 개선할 점을 건설적으로 제안해주세요
-4. 추가로 생각해볼 수 있는 내용을 제안해주세요
-5. 각 항목은 2-3문장으로 작성하세요
+1. **반드시 실제 그래프 데이터를 참고해서 피드백을 작성하세요** - 학생이 작성한 내용이 실제 데이터와 일치하는지 확인하세요
+2. 학생이 실제 그래프에서 발견한 사실을 정확히 파악했는지 평가하세요
+3. 그래프 선택이 데이터에 적합한지 평가하세요 (예: 시계열 데이터면 선 그래프가 적합)
+4. 잘한 점을 구체적으로 찾아서 칭찬해주세요 (예: "그래프에서 최대값과 최소값을 정확히 파악했어요!")
+5. 개선할 점을 건설적으로 제안해주세요 (예: "그래프에서 보이는 추세를 더 자세히 설명하면 좋을 것 같아요")
+6. 추가로 생각해볼 수 있는 내용을 제안해주세요 (실제 데이터를 기반으로)
+7. 초등학생 수준에 맞게 친절하고 격려하는 톤으로 작성하세요
+8. 각 항목은 2-3문장으로 작성하세요
 
 응답 형식:
 {
-  "strengths": "잘한 점에 대한 칭찬과 격려",
-  "improvements": "개선할 점에 대한 건설적인 제안",
-  "suggestions": "추가로 생각해볼 수 있는 내용 제안"
+  "strengths": "잘한 점에 대한 칭찬과 격려 (실제 그래프 데이터를 참고하여 구체적으로)",
+  "improvements": "개선할 점에 대한 건설적인 제안 (실제 그래프 데이터를 참고하여)",
+  "suggestions": "추가로 생각해볼 수 있는 내용 제안 (실제 그래프 데이터를 기반으로)"
 }`;
 
     } else if (type === 'correlation') {
