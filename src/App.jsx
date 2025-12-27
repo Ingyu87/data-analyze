@@ -467,12 +467,6 @@ const App = () => {
     }
     setView('result');
   };
-
-
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:480',message:'App render start',data:{view,stagedFilesCount:stagedFiles.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
-
   if (view === 'lockdown') {
     return <Lockdown detectedBadWord={detectedBadWord} onReset={resetApp} />;
   }
