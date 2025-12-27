@@ -19,17 +19,33 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
       if (onRenderingChange) onRenderingChange(true);
       
       try {
+        // plotly.js를 동적으로 import
         const plotlyModule = await import('plotly.js');
         
-        // 여러 가능한 export 구조 확인
         let plotly = null;
-        if (plotlyModule.default && typeof plotlyModule.default.newPlot === 'function') {
-          plotly = plotlyModule.default;
-        } else if (typeof plotlyModule.newPlot === 'function') {
-          plotly = plotlyModule;
-        } else if (plotlyModule.Plotly && typeof plotlyModule.Plotly.newPlot === 'function') {
-          plotly = plotlyModule.Plotly;
-        } else if (window.Plotly && typeof window.Plotly.newPlot === 'function') {
+        
+        // plotly.js는 기본적으로 default export가 없고, 직접 사용
+        // 여러 가능한 export 구조 확인
+        if (plotlyModule.default) {
+          // default가 있으면 확인
+          if (typeof plotlyModule.default.newPlot === 'function') {
+            plotly = plotlyModule.default;
+          } else if (plotlyModule.default.Plotly && typeof plotlyModule.default.Plotly.newPlot === 'function') {
+            plotly = plotlyModule.default.Plotly;
+          }
+        }
+        
+        // default가 없거나 실패하면 직접 확인
+        if (!plotly) {
+          if (typeof plotlyModule.newPlot === 'function') {
+            plotly = plotlyModule;
+          } else if (plotlyModule.Plotly && typeof plotlyModule.Plotly.newPlot === 'function') {
+            plotly = plotlyModule.Plotly;
+          }
+        }
+        
+        // window.Plotly 확인 (일부 빌드에서는 window에 할당됨)
+        if (!plotly && window.Plotly && typeof window.Plotly.newPlot === 'function') {
           plotly = window.Plotly;
         }
         
@@ -37,15 +53,58 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
           plotlyRef.current = plotly;
           if (mountedRef.current) {
             setPlotlyLoaded(true);
-            console.log('Plotly 로드 완료');
+            console.log('Plotly 로드 완료', typeof plotly);
           }
         } else {
-          console.error('Plotly 모듈 구조 오류:', Object.keys(plotlyModule));
-          if (onRenderingChange) onRenderingChange(false);
+          console.error('Plotly 모듈 구조 오류:', {
+            hasDefault: !!plotlyModule.default,
+            hasNewPlot: typeof plotlyModule.newPlot,
+            hasPlotly: !!plotlyModule.Plotly,
+            hasWindowPlotly: !!window.Plotly,
+            keys: Object.keys(plotlyModule)
+          });
+          // CDN으로 폴백 시도
+          loadPlotlyFromCDN();
         }
       } catch (error) {
         console.error('Plotly 로드 실패:', error);
-        if (onRenderingChange) onRenderingChange(false);
+        // CDN으로 폴백 시도
+        loadPlotlyFromCDN();
+      }
+      
+      // CDN 로드 함수
+      function loadPlotlyFromCDN() {
+        if (typeof window !== 'undefined' && !window.Plotly) {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.plot.ly/plotly-2.27.0.min.js';
+          script.onload = () => {
+            if (window.Plotly && typeof window.Plotly.newPlot === 'function') {
+              plotlyRef.current = window.Plotly;
+              if (mountedRef.current) {
+                setPlotlyLoaded(true);
+                console.log('Plotly CDN 로드 완료');
+                if (onRenderingChange) onRenderingChange(false);
+              }
+            } else {
+              console.error('Plotly CDN 로드 후에도 newPlot 없음');
+              if (onRenderingChange) onRenderingChange(false);
+            }
+          };
+          script.onerror = () => {
+            console.error('Plotly CDN 로드 실패');
+            if (onRenderingChange) onRenderingChange(false);
+          };
+          document.head.appendChild(script);
+        } else if (window.Plotly && typeof window.Plotly.newPlot === 'function') {
+          plotlyRef.current = window.Plotly;
+          if (mountedRef.current) {
+            setPlotlyLoaded(true);
+            console.log('기존 window.Plotly 사용');
+            if (onRenderingChange) onRenderingChange(false);
+          }
+        } else if (onRenderingChange) {
+          onRenderingChange(false);
+        }
       }
     };
     

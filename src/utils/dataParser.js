@@ -118,32 +118,37 @@ export const parseTextToData = (text, fileName) => {
           label = col1;
         }
         
-        // 숫자 컬럼들 찾기 (세 번째 컬럼부터 또는 숫자로 시작하는 컬럼부터)
-        let sum = 0;
-        let hasNumericValue = false;
+        // 숫자 컬럼 찾기 - 여러 컬럼이 있으면 첫 번째 숫자 컬럼만 사용
+        // (여러 지표가 섞이지 않도록)
+        let foundValue = null;
         
+        // 숫자 컬럼 찾기 (세 번째 컬럼부터 또는 숫자로 시작하는 컬럼부터)
         for (let k = numericStartIdx >= 0 ? numericStartIdx : 2; k < parts.length; k++) {
           const valueStr = parts[k].replace(/^"|"$/g, '').replace(/,/g, '').trim();
           const valMatch = valueStr.match(/-?\d+(\.\d+)?/);
           if (valMatch) {
             const num = parseFloat(valMatch[0]);
             if (!isNaN(num)) {
-              sum += num;
-              hasNumericValue = true;
+              // 첫 번째 숫자 컬럼만 사용 (여러 지표 합산 방지)
+              if (foundValue === null) {
+                foundValue = num;
+                break; // 첫 번째 숫자만 사용
+              }
             }
           }
         }
         
-        // 숫자 컬럼이 여러 개인 경우 합산, 하나만 있으면 그 값 사용
-        if (hasNumericValue) {
-          value = sum;
-        } else if (parts.length >= 2) {
-          // 두 번째 컬럼이 숫자인지 확인
+        // 첫 번째 숫자 컬럼이 없으면 두 번째 컬럼 확인
+        if (foundValue === null && parts.length >= 2) {
           const valueStr = parts[1].replace(/^"|"$/g, '').replace(/,/g, '').trim();
           const valMatch = valueStr.match(/-?\d+(\.\d+)?/);
           if (valMatch) {
-            value = parseFloat(valMatch[0]);
+            foundValue = parseFloat(valMatch[0]);
           }
+        }
+        
+        if (foundValue !== null) {
+          value = foundValue;
         }
       }
     } else {
