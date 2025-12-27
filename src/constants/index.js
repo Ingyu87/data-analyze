@@ -2,11 +2,8 @@
 export const APP_SIGNATURE = "가동초 백인규";
 export const DEV_ID = "Seoul Gadong-cho Baek In-gyu";
 
-// 금지 단어 목록 (교육 목적상 최소한으로만 필터링)
-export const FORBIDDEN_WORDS = [
-  // 욕설 및 비속어만 필터링
-  "시발", "개새끼", "병신", "닥쳐", "존나"
-];
+// 금지 단어 목록 (현재 비활성화 - 필요시 재활성화 가능)
+export const FORBIDDEN_WORDS = [];
 
 // 앱 설정
 export const APP_CONFIG = {
