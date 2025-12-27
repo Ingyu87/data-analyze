@@ -16,13 +16,8 @@ export default defineConfig({
     port: 3000,
     open: true
   },
-  resolve: {
-    alias: {
-      'buffer': 'buffer',
-    },
-  },
-  optimizeDeps: {
-    include: ['buffer'],
+  define: {
+    'global': 'globalThis',
   },
 })
 
