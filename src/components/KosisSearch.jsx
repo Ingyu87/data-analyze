@@ -187,10 +187,7 @@ const KosisSearch = ({ onDataSelect }) => {
                 className="p-4 bg-purple-900/30 border border-purple-500/30 rounded-lg hover:border-purple-400 transition"
               >
                 <div className="flex justify-between items-start">
-                  <div 
-                    className="flex-1 cursor-pointer"
-                    onClick={() => handleSelectStatistics(item)}
-                  >
+                  <div className="flex-1">
                     <h4 className="text-white font-bold mb-1">{statName}</h4>
                     {orgName && (
                       <p className="text-purple-300 text-sm mb-2">📌 {orgName}</p>
@@ -203,17 +200,25 @@ const KosisSearch = ({ onDataSelect }) => {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {kosisUrl && (
+                    {kosisUrl ? (
                       <a
                         href={kosisUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
                         className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded border border-blue-400 transition"
                         title="KOSIS에서 파일 다운로드"
                       >
                         📥 다운로드
                       </a>
+                    ) : (
+                      <button
+                        onClick={() => handleSelectStatistics(item)}
+                        disabled={isLoadingData}
+                        className="text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded border border-green-400 transition disabled:opacity-50"
+                        title="데이터 직접 로드"
+                      >
+                        {isLoadingData ? '로딩...' : '📊 데이터 로드'}
+                      </button>
                     )}
                     {isLoadingData && (
                       <Loader className="animate-spin text-blue-400" size={20} />

@@ -62,10 +62,18 @@ export const parseTextToData = (text, fileName) => {
       
       const firstCol = parts[0].replace(/^"|"$/g, '').trim();
       
-      // 시계열 감지: 두 번째 컬럼부터 연도(4자리 숫자)가 있는지 확인
+      // 시계열 감지: 두 번째 컬럼부터 패턴 확인
+      // 1. 연도(4자리 숫자) 감지
       const yearColumns = parts.slice(1).filter(p => {
         const cleaned = p.replace(/^"|"$/g, '').trim();
         return /^\d{4}$/.test(cleaned); // 4자리 숫자 (연도)
+      });
+      
+      // 2. 국가/지역명 등 텍스트 카테고리 감지 (숫자가 아닌 텍스트가 2개 이상)
+      const textCategories = parts.slice(1).filter(p => {
+        const cleaned = p.replace(/^"|"$/g, '').trim();
+        // 숫자가 아니고, 빈 값이 아니며, "단위:" 같은 메타데이터가 아닌 경우
+        return cleaned && !/^\d+(\.\d+)?$/.test(cleaned) && !cleaned.includes('단위');
       });
       
       // 연도 컬럼이 2개 이상이면 시계열 데이터로 판단
@@ -75,7 +83,20 @@ export const parseTextToData = (text, fileName) => {
         xLabel = "연도";
         yLabel = "값";
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:70',message:'Time series detected',data:{headerIdx:i,yearColumns:yearColumns,parts,firstCol},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:75',message:'Time series detected (years)',data:{headerIdx:i,yearColumns:yearColumns,parts,firstCol},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        break;
+      }
+      
+      // 텍스트 카테고리(국가, 지역 등)가 2개 이상이면 시계열 데이터로 판단
+      if (textCategories.length >= 2 && parts.length >= 3) {
+        isTimeSeries = true;
+        headerIdx = i;
+        // 첫 번째 컬럼이 비어있거나 메타데이터면 "항목"으로 설정, 아니면 첫 컬럼명 사용
+        xLabel = (firstCol && !firstCol.includes('단위') && firstCol !== '') ? firstCol : "항목";
+        yLabel = "값";
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:88',message:'Time series detected (categories)',data:{headerIdx:i,textCategories:textCategories,parts,firstCol,xLabel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         break;
       }
@@ -190,47 +211,50 @@ export const parseTextToData = (text, fileName) => {
         continue;
       }
       
-      // 각 연도별 값 추출 (두 번째 컬럼부터)
+      // 각 카테고리별 값 추출 (두 번째 컬럼부터)
+      // 카테고리는 연도(4자리 숫자) 또는 국가/지역명 등 텍스트일 수 있음
       let rowDataPoints = 0;
       for (let j = 1; j < Math.min(parts.length, headers.length); j++) {
-        const yearLabel = headers[j].replace(/^"|"$/g, '').trim();
+        const categoryLabel = headers[j].replace(/^"|"$/g, '').trim();
         const valueStr = parts[j].replace(/^"|"$/g, '').replace(/,/g, '').trim();
         
-        // 연도인지 확인 (4자리 숫자)
-        const isYear = /^\d{4}$/.test(yearLabel);
+        // 카테고리 타입 확인: 연도(4자리 숫자) 또는 텍스트
+        const isYear = /^\d{4}$/.test(categoryLabel);
+        const isTextCategory = !isYear && categoryLabel && !categoryLabel.includes('단위');
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:135',message:'Processing column',data:{rowLabel,columnIndex:j,yearLabel,isYear,valueStr,isEmpty:!valueStr||valueStr===''},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:140',message:'Processing column',data:{rowLabel,columnIndex:j,categoryLabel,isYear,isTextCategory,valueStr,isEmpty:!valueStr||valueStr===''},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
         // #endregion
         
-        // 값이 비어있으면 건너뛰기
-        if (!valueStr || valueStr === '') continue;
+        // 값이 비어있거나 카테고리가 유효하지 않으면 건너뛰기
+        if (!valueStr || valueStr === '' || (!isYear && !isTextCategory)) continue;
         
         // 숫자 추출
         const numMatch = valueStr.match(/-?\d+(\.\d+)?/);
         
-        if (numMatch && isYear) {
+        if (numMatch && (isYear || isTextCategory)) {
           const value = parseFloat(numMatch[0]);
           if (!isNaN(value)) { // 음수도 포함 (데이터에 따라 음수값이 있을 수 있음)
-            const label = `${rowLabel} (${yearLabel})`;
+            const label = `${rowLabel} (${categoryLabel})`;
             dataPoints.push({
               label,
               value,
               originalLabel: rowLabel,
-              year: yearLabel
+              year: isYear ? categoryLabel : null,
+              category: isTextCategory ? categoryLabel : null
             });
             rowDataPoints++;
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:150',message:'Data point added',data:{label,value,year:yearLabel,rowLabel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:160',message:'Data point added',data:{label,value,year:isYear?categoryLabel:null,category:isTextCategory?categoryLabel:null,rowLabel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
             // #endregion
           } else {
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:152',message:'Value is NaN',data:{valueStr,numMatch:numMatch?numMatch[0]:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:165',message:'Value is NaN',data:{valueStr,numMatch:numMatch?numMatch[0]:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
             // #endregion
           }
         } else {
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:155',message:'Skipping column',data:{yearLabel,isYear,valueStr,hasNumMatch:!!numMatch},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:168',message:'Skipping column',data:{categoryLabel,isYear,isTextCategory,valueStr,hasNumMatch:!!numMatch},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
           // #endregion
         }
       }
@@ -240,30 +264,33 @@ export const parseTextToData = (text, fileName) => {
     }
     
     if (dataPoints.length > 0) {
-      // 연도순으로 정렬
+      // 정렬: 연도가 있으면 연도순, 아니면 카테고리명순
       dataPoints.sort((a, b) => {
         if (a.year && b.year) {
           return a.year.localeCompare(b.year);
+        }
+        if (a.category && b.category) {
+          return a.category.localeCompare(b.category);
         }
         return 0;
       });
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:163',message:'Time series parsing complete',data:{totalDataPoints:dataPoints.length,firstFew:dataPoints.slice(0,5)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:180',message:'Time series parsing complete',data:{totalDataPoints:dataPoints.length,firstFew:dataPoints.slice(0,5),xLabel,yLabel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
       
       return {
         success: true,
         data: {
           name: fileName,
-          xLabel: "연도",
-          yLabel: "값",
+          xLabel: xLabel || "항목",
+          yLabel: yLabel || "값",
           data: dataPoints
         }
       };
     } else {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:175',message:'Time series parsing failed - no data points',data:{isTimeSeries,headersLength:headers.length,startRow,linesProcessed:lines.length-startRow},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/dataParser.js:193',message:'Time series parsing failed - no data points',data:{isTimeSeries,headersLength:headers.length,startRow,linesProcessed:lines.length-startRow},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
     }
   }
