@@ -48,6 +48,22 @@ const App = () => {
     setView('intro');
   };
 
+  // KOSIS 데이터 선택 처리
+  const handleKosisDataSelect = (data) => {
+    // KOSIS 데이터를 파일 형식으로 변환하여 stagedFiles에 추가
+    const kosisFile = {
+      id: `kosis-${Date.now()}`,
+      name: data.name || 'KOSIS 통계',
+      type: 'kosis',
+      status: 'ready',
+      data: data,
+    };
+
+    setStagedFiles([kosisFile]);
+    setReadyToStart(true);
+    setView('staging');
+  };
+
   const processFiles = async (files) => {
     const newFiles = [];
     for (let file of files) {
@@ -489,6 +505,7 @@ const App = () => {
             dragActive={dragActive}
             onDrag={handleDrag}
             onDrop={handleDrop}
+            onKosisDataSelect={handleKosisDataSelect}
           />
         )}
 

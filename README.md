@@ -5,9 +5,9 @@
 ## 주요 기능
 
 - 📄 **다양한 파일 형식 지원**: PDF, Excel (XLSX/XLS), CSV, 텍스트 파일, 이미지
-- 📊 **자동 데이터 파싱**: 파일에서 데이터를 자동으로 추출하고 분석
-- 🎯 **그래프 채굴 모드**: 이미지나 PDF에서 직접 그래프 데이터를 추출
-- 📈 **데이터 시각화**: Plotly를 사용한 인터랙티브 차트 (꺾은선/막대 그래프)
+- 📊 **KOSIS 국가통계포털 검색**: 국가통계포털에서 직접 통계 데이터를 검색하고 분석
+- 🎯 **자동 데이터 파싱**: 파일에서 데이터를 자동으로 추출하고 분석
+- 📈 **데이터 시각화**: Plotly를 사용한 인터랙티브 차트 (꺾은선/막대/원/그림 그래프)
 - 🔍 **트렌드 분석**: 단일 데이터셋의 트렌드 분석 및 미래 예측
 - 🔗 **상관관계 분석**: 두 데이터셋 간의 상관관계 분석
 - 🤖 **AI 기반 설명**: Upstage AI를 활용한 초등학생용 친절한 설명 생성
@@ -32,6 +32,7 @@ npm install
 
 # 환경 변수 설정 (.env.local 파일 생성)
 UPSTAGE_API_KEY=your_api_key_here
+KOSIS_API_KEY=your_kosis_api_key_here
 
 # 개발 서버 실행
 npm run dev
@@ -77,6 +78,9 @@ npm run preview
    - **Name**: `UPSTAGE_API_KEY`
    - **Value**: `your_upstage_api_key_here` (실제 API 키 입력)
    - **Environment**: Production, Preview, Development 모두 선택
+   - **Name**: `KOSIS_API_KEY`
+   - **Value**: `your_kosis_api_key_here` (KOSIS API 키 입력)
+   - **Environment**: Production, Preview, Development 모두 선택
 
 6. 배포를 완료합니다.
 
@@ -89,6 +93,7 @@ npm run preview
 1. `.env.local` 파일을 생성하세요:
    ```bash
    UPSTAGE_API_KEY=your_api_key_here
+   KOSIS_API_KEY=your_kosis_api_key_here
    ```
 
 2. `.env.example` 파일을 참고하세요 (템플릿만 제공, 실제 키는 없음)
@@ -100,6 +105,9 @@ npm run preview
 3. 다음 환경 변수 추가:
    - **Name**: `UPSTAGE_API_KEY`
    - **Value**: `your_upstage_api_key_here` (실제 API 키 입력)
+   - **Environment**: Production, Preview, Development 모두 선택
+   - **Name**: `KOSIS_API_KEY`
+   - **Value**: `your_kosis_api_key_here` (KOSIS API 키 입력)
    - **Environment**: Production, Preview, Development 모두 선택
 
 4. 저장 후 재배포
@@ -115,11 +123,13 @@ npm run preview
 ```
 data-analyze/
 ├── api/                      # Vercel 서버리스 함수
-│   └── ai-explain.js         # AI 설명 생성 API
+│   ├── ai-explain.js         # AI 설명 생성 API
+│   └── kosis-search.js       # KOSIS 통계 검색 API
 ├── src/
 │   ├── components/          # React 컴포넌트
 │   │   ├── Icons.jsx        # 아이콘 컴포넌트
 │   │   ├── Intro.jsx        # 인트로 화면
+│   │   ├── KosisSearch.jsx  # KOSIS 통계 검색 화면
 │   │   ├── Staging.jsx      # 파일 스테이징 화면
 │   │   ├── Extraction.jsx   # 그래프 채굴 화면
 │   │   ├── Result.jsx       # 결과 화면
