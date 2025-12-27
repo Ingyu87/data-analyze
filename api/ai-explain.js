@@ -124,6 +124,54 @@ ${dataContext}
   "example": "실제 데이터를 사용한 구체적인 예시 한 문장"
 }`;
 
+    } else if (type === 'content-safety') {
+      // 콘텐츠 안전성 검사
+      const { text } = data;
+      
+      prompt = `당신은 초등학생이 작성한 텍스트를 검사하는 선생님입니다. 다음 텍스트에 부적절한 내용(욕설, 폭언, 비방 등)이 포함되어 있는지 확인해주세요.
+
+텍스트: ${text}
+
+요구사항:
+1. 초등학생이 사용할 수 있는 부적절한 단어나 표현이 있는지 확인하세요
+2. 욕설, 비방, 폭언, 차별적 표현 등을 찾아주세요
+3. 교육적 맥락에서 부적절한 내용인지 판단하세요
+4. 일반적인 단어나 학술적 용어는 허용하세요
+
+응답 형식:
+{
+  "isInappropriate": true/false,
+  "detectedWord": "발견된 부적절한 단어 (있는 경우)",
+  "reason": "왜 부적절한지 간단한 이유"
+}`;
+
+    } else if (type === 'report-feedback') {
+      // 보고서 피드백
+      const { reportData, analysisResult } = data;
+      
+      prompt = `당신은 초등학생의 보고서를 평가하는 친절한 선생님입니다. 다음 보고서를 읽고 피드백을 작성해주세요.
+
+보고서 제목: ${reportData.title}
+데이터 선정 이유: ${reportData.dataSelectionReason}
+선택한 그래프: ${reportData.selectedChartType}
+그래프 선택 이유: ${reportData.chartSelectionReason}
+그래프를 통해 알 수 있는 사실: ${reportData.findings}
+미래 예측: ${reportData.futurePrediction}
+
+요구사항:
+1. 초등학생 수준에 맞게 친절하고 격려하는 톤으로 작성하세요
+2. 잘한 점을 구체적으로 찾아서 칭찬해주세요
+3. 개선할 점을 건설적으로 제안해주세요
+4. 추가로 생각해볼 수 있는 내용을 제안해주세요
+5. 각 항목은 2-3문장으로 작성하세요
+
+응답 형식:
+{
+  "strengths": "잘한 점에 대한 칭찬과 격려",
+  "improvements": "개선할 점에 대한 건설적인 제안",
+  "suggestions": "추가로 생각해볼 수 있는 내용 제안"
+}`;
+
     } else if (type === 'correlation') {
       // 상관관계 설명
       const { data1Name, data2Name, correlation, data1Stats, data2Stats, realWorldExample } = data;

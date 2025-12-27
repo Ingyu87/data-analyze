@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const ChartRender = ({ data, chartType = 'line' }) => {
+const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => {
   const [plotlyLoaded, setPlotlyLoaded] = useState(false);
   const [Plotly, setPlotly] = useState(null);
 
@@ -17,7 +17,7 @@ const ChartRender = ({ data, chartType = 'line' }) => {
   useEffect(() => {
     if (!plotlyLoaded || !Plotly) return;
     
-    const div = document.getElementById('chart-div');
+    const div = document.getElementById(chartDivId);
     if (!div) return;
 
     const layout = {

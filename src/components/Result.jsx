@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Icons } from './Icons';
 import ChartRender from './ChartRender';
 import AIPrincipleAccordion from './AIPrincipleAccordion';
+import ReportWriter from './ReportWriter';
 import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
 import { generateDynamicExample } from '../utils/aiPrincipleExampleGenerator';
 import { generateQuestions, generateCorrelationQuestions } from '../utils/questionGenerator';
@@ -16,6 +17,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
   );
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizResults, setQuizResults] = useState(null);
+  const [showReportWriter, setShowReportWriter] = useState(false);
   const [dynamicExamples, setDynamicExamples] = useState({});
   const [showChartExplanation, setShowChartExplanation] = useState(true);
   
@@ -360,18 +362,32 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
         </div>
       )}
       
-      {!showQuiz && !quizResults && (
-        <div className="glass-panel rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4 text-center">📚 그래프 해석 문제</h3>
-          <p className="text-purple-200 text-center mb-6">
-            초등학교 4학년 수준의 문제를 풀어보세요!
-          </p>
-          <button
-            onClick={() => setShowQuiz(true)}
-            className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
-          >
-            문제 풀기 (2문제)
-          </button>
+      {!showQuiz && !quizResults && !showReportWriter && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="glass-panel rounded-xl p-6">
+            <h3 className="text-xl font-bold text-white mb-4 text-center">📚 그래프 해석 문제</h3>
+            <p className="text-purple-200 text-center mb-6">
+              초등학교 4학년 수준의 문제를 풀어보세요!
+            </p>
+            <button
+              onClick={() => setShowQuiz(true)}
+              className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
+            >
+              문제 풀기 (2문제)
+            </button>
+          </div>
+          <div className="glass-panel rounded-xl p-6">
+            <h3 className="text-xl font-bold text-white mb-4 text-center">📝 보고서 작성</h3>
+            <p className="text-purple-200 text-center mb-6">
+              데이터 분석 결과를 바탕으로 보고서를 작성해보세요!
+            </p>
+            <button
+              onClick={() => setShowReportWriter(true)}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
+            >
+              보고서 작성하기
+            </button>
+          </div>
         </div>
       )}
 
@@ -380,6 +396,13 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
           questions={questions}
           onComplete={handleQuizComplete}
           analysisResult={analysisResult}
+        />
+      )}
+
+      {showReportWriter && (
+        <ReportWriter
+          analysisResult={analysisResult}
+          onBack={() => setShowReportWriter(false)}
         />
       )}
 
