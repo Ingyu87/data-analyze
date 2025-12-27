@@ -219,7 +219,10 @@ export const parseTextToData = (text, fileName) => {
         const valueStr = parts[j].replace(/^"|"$/g, '').replace(/,/g, '').trim();
         
         // 카테고리 타입 확인: 연도(4자리 숫자) 또는 텍스트
-        const isYear = /^\d{4}$/.test(categoryLabel);
+        // "2024 p)" 같은 형식도 연도로 인식 (앞의 4자리 숫자 추출)
+        const yearMatch = categoryLabel.match(/^(\d{4})/);
+        const isYear = yearMatch !== null;
+        const extractedYear = isYear ? yearMatch[1] : null;
         const isTextCategory = !isYear && categoryLabel && !categoryLabel.includes('단위');
         
         // #region agent log
@@ -236,12 +239,15 @@ export const parseTextToData = (text, fileName) => {
           const value = parseFloat(numMatch[0]);
           if (!isNaN(value)) { // 음수도 포함 (데이터에 따라 음수값이 있을 수 있음)
             const label = `${rowLabel} (${categoryLabel})`;
+            // 연도 추출: "2024 p)" -> "2024"
+            const yearValue = extractedYear || (isYear ? categoryLabel : null);
             dataPoints.push({
               label,
               value,
               originalLabel: rowLabel,
-              year: isYear ? categoryLabel : null,
-              category: isTextCategory ? categoryLabel : null
+              year: yearValue,
+              category: isTextCategory ? categoryLabel : null,
+              rawCategory: categoryLabel // 원본 카테고리 라벨 저장
             });
             rowDataPoints++;
             // #region agent log
@@ -282,17 +288,10 @@ export const parseTextToData = (text, fileName) => {
       
       // 연도 데이터가 있는 경우, 각 카테고리별로 가장 최신 연도만 선택
       const hasYearData = dataPoints.some(d => d.year);
-      if (hasYearData) {
-        // 연도별로 그룹화
+      if (hasYearData || dataPoints.some(d => d.rawCategory && d.rawCategory.match(/^\d{4}/))) {
+        // 연도별로 그룹화 (연도가 있거나 rawCategory에 연도가 포함된 경우)
         for (const point of dataPoints) {
-          if (point.year && point.originalLabel) {
-            const key = point.originalLabel;
-            if (!categoryMap.has(key)) {
-              categoryMap.set(key, []);
-            }
-            categoryMap.get(key).push(point);
-          } else if (point.category && point.originalLabel) {
-            // 카테고리 데이터도 처리
+          if (point.originalLabel) {
             const key = point.originalLabel;
             if (!categoryMap.has(key)) {
               categoryMap.set(key, []);
@@ -319,13 +318,35 @@ export const parseTextToData = (text, fileName) => {
               originalLabel: category
             });
           } else {
-            // 연도가 없는 경우 (카테고리만 있는 경우) 가장 마지막 값 선택
-            const latest = points[points.length - 1];
-            finalDataPoints.push({
-              label: category,
-              value: latest.value,
-              originalLabel: category
-            });
+            // 연도가 없는 경우 (카테고리만 있는 경우) rawCategory를 사용해서 정렬
+            // "2024 p)" 같은 경우도 처리
+            const pointsWithRaw = points.filter(p => p.rawCategory);
+            if (pointsWithRaw.length > 0) {
+              // rawCategory에서 연도 추출해서 정렬
+              pointsWithRaw.sort((a, b) => {
+                const yearA = parseInt(a.rawCategory.match(/^(\d{4})/)?.[1] || '0') || 0;
+                const yearB = parseInt(b.rawCategory.match(/^(\d{4})/)?.[1] || '0') || 0;
+                if (yearA !== 0 || yearB !== 0) {
+                  return yearB - yearA; // 내림차순 (최신이 먼저)
+                }
+                // 연도가 없으면 원래 순서 유지
+                return 0;
+              });
+              const latest = pointsWithRaw[0];
+              finalDataPoints.push({
+                label: category,
+                value: latest.value,
+                originalLabel: category
+              });
+            } else {
+              // rawCategory도 없는 경우 가장 마지막 값 선택
+              const latest = points[points.length - 1];
+              finalDataPoints.push({
+                label: category,
+                value: latest.value,
+                originalLabel: category
+              });
+            }
           }
         }
       } else {
