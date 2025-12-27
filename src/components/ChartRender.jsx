@@ -1,30 +1,45 @@
 import React, { useEffect, useState } from 'react';
 
-const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => {
+const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRenderingChange }) => {
   const [plotlyLoaded, setPlotlyLoaded] = useState(false);
   const [Plotly, setPlotly] = useState(null);
+  const [isRendering, setIsRendering] = useState(false);
 
   // Lazy load Plotly
   useEffect(() => {
+    if (!plotlyLoaded && !Plotly) {
+      if (onRenderingChange) onRenderingChange(true);
+    }
     import('plotly.js').then((plotlyModule) => {
       setPlotly(plotlyModule.default);
       setPlotlyLoaded(true);
+      if (onRenderingChange && !data) onRenderingChange(false);
     }).catch((error) => {
       console.error('Failed to load Plotly:', error);
+      if (onRenderingChange) onRenderingChange(false);
     });
   }, []);
 
   useEffect(() => {
-    if (!plotlyLoaded || !Plotly || !data) return;
+    if (!plotlyLoaded || !Plotly || !data) {
+      if (onRenderingChange) onRenderingChange(false);
+      return;
+    }
     
     const div = document.getElementById(chartDivId);
     if (!div) {
       console.warn(`Chart div not found: ${chartDivId}`);
+      if (onRenderingChange) onRenderingChange(false);
       return;
     }
 
     // Cleanup flag to prevent React error #130
     let isMounted = true;
+    let plotlyInstance = null;
+    
+    // 렌더링 시작
+    setIsRendering(true);
+    if (onRenderingChange) onRenderingChange(true);
 
     const layout = {
       paper_bgcolor: 'rgba(0,0,0,0)',
@@ -141,6 +156,14 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
       }
       
       if (isMounted) {
+        // 기존 그래프 제거
+        try {
+          Plotly.purge(div);
+        } catch (e) {
+          // 무시
+        }
+        
+        console.log('Rendering chart with', traces.length, 'traces,', x.length, 'data points');
         Plotly.newPlot(
           div,
           traces,
@@ -148,7 +171,20 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
             ...layout,
             title: { text: data.title, font: { size: 18, color: '#fff' } }
           }
-        );
+        ).then(() => {
+          if (isMounted) {
+            plotlyInstance = div;
+            setIsRendering(false);
+            if (onRenderingChange) onRenderingChange(false);
+            console.log('Chart rendered successfully');
+          }
+        }).catch((error) => {
+          console.error('Plotly rendering error:', error);
+          if (isMounted) {
+            setIsRendering(false);
+            if (onRenderingChange) onRenderingChange(false);
+          }
+        });
       }
     } else if (data.type === 'multi') {
       // 상관관계 산점도
@@ -158,6 +194,13 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
       }
 
       if (isMounted) {
+        // 기존 그래프 제거
+        try {
+          Plotly.purge(div);
+        } catch (e) {
+          // 무시
+        }
+        
         Plotly.newPlot(
           div,
           [
@@ -180,13 +223,27 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
             xaxis: { ...layout.xaxis, title: data.file1 },
             yaxis: { ...layout.yaxis, title: data.file2 }
           }
-        );
+        ).then(() => {
+          if (isMounted) {
+            plotlyInstance = div;
+            setIsRendering(false);
+            if (onRenderingChange) onRenderingChange(false);
+          }
+        }).catch((error) => {
+          console.error('Plotly rendering error:', error);
+          if (isMounted) {
+            setIsRendering(false);
+            if (onRenderingChange) onRenderingChange(false);
+          }
+        });
       }
     }
 
     // Cleanup function
     return () => {
       isMounted = false;
+      setIsRendering(false);
+      if (onRenderingChange) onRenderingChange(false);
       if (div && Plotly) {
         try {
           Plotly.purge(div);
@@ -195,7 +252,7 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div' }) => 
         }
       }
     };
-  }, [data, chartType, plotlyLoaded, Plotly, chartDivId]);
+  }, [data, chartType, plotlyLoaded, Plotly, chartDivId, onRenderingChange]);
 
   return null;
 };

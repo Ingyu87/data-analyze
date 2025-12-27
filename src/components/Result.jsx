@@ -20,6 +20,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
   const [showReportWriter, setShowReportWriter] = useState(false);
   const [dynamicExamples, setDynamicExamples] = useState({});
   const [showChartExplanation, setShowChartExplanation] = useState(true);
+  const [isChartRendering, setIsChartRendering] = useState(false);
   
   // 동적 예시 생성
   useEffect(() => {
@@ -31,16 +32,24 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
     
     const loadExamples = async () => {
       const examples = {};
-      for (const step of steps) {
+      // 병렬로 실행하여 성능 개선
+      const promises = steps.map(async (step) => {
         try {
           const example = await generateDynamicExample(step, analysisResult);
-          if (example) {
-            examples[step] = example;
-          }
+          return { step, example };
         } catch (error) {
           console.log(`예시 생성 실패 (${step}):`, error);
+          return { step, example: null };
         }
-      }
+      });
+      
+      const results = await Promise.all(promises);
+      results.forEach(({ step, example }) => {
+        if (example) {
+          examples[step] = example;
+        }
+      });
+      
       setDynamicExamples(examples);
     };
     
@@ -103,8 +112,34 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
             </div>
           )}
         </div>
-        <div id="chart-div" className="w-full h-[400px] bg-black/20 rounded-lg mb-4"></div>
-        <ChartRender data={analysisResult} chartType={chartType} chartDivId="chart-div" />
+        <div id="chart-div" className="w-full h-[400px] bg-black/20 rounded-lg mb-4 relative">
+          {isChartRendering && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg z-10 backdrop-blur-sm">
+              <div className="text-center">
+                {/* 물결선 애니메이션 */}
+                <div className="relative w-20 h-20 mx-auto mb-4">
+                  <div className="absolute inset-0 rounded-full border-4 border-purple-400/30"></div>
+                  <div className="absolute inset-0 rounded-full border-4 border-purple-400 animate-ping"></div>
+                  <div className="absolute inset-2 rounded-full border-4 border-purple-500/50 animate-pulse"></div>
+                  <div className="absolute inset-4 rounded-full bg-purple-400/20 animate-pulse"></div>
+                </div>
+                <p className="text-purple-200 text-sm font-medium">그래프를 그리고 있어요...</p>
+                <p className="text-purple-300 text-xs mt-2">데이터가 많으면 시간이 걸릴 수 있어요</p>
+              </div>
+            </div>
+          )}
+          {!isChartRendering && analysisResult && analysisResult.type === 'single' && (!analysisResult.dataset || analysisResult.dataset.length === 0) && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
+              <p className="text-purple-300 text-sm">데이터를 불러오는 중...</p>
+            </div>
+          )}
+        </div>
+        <ChartRender 
+          data={analysisResult} 
+          chartType={chartType} 
+          chartDivId="chart-div"
+          onRenderingChange={setIsChartRendering}
+        />
         
         {/* 그래프 축 설명 */}
         {analysisResult.type === 'single' && analysisResult.xLabel && analysisResult.yLabel && (
@@ -465,7 +500,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
       )}
 
       {showReportWriter && (
-        <div className="mt-6">
+        <div className="mt-6 w-full">
           <ReportWriter
             analysisResult={analysisResult}
             onBack={() => setShowReportWriter(false)}

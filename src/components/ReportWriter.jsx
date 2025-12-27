@@ -5,8 +5,23 @@ import { generateReportFeedback } from '../utils/reportFeedback';
 import { generateReportPDF } from '../utils/reportPDFGenerator';
 import ChartRender from './ChartRender';
 
-const ReportWriter = ({ analysisResult, onBack }) => {
+const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
   const { ArrowLeft } = Icons;
+  
+  // analysisResult가 없으면 에러 메시지 표시
+  if (!analysisResult) {
+    return (
+      <div className="glass-panel rounded-xl p-6">
+        <p className="text-red-400 text-center">데이터 분석 결과가 없습니다. 먼저 데이터를 분석해주세요.</p>
+        <button
+          onClick={onBack}
+          className="mt-4 w-full bg-gray-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-gray-700 transition"
+        >
+          돌아가기
+        </button>
+      </div>
+    );
+  }
   const [reportData, setReportData] = useState({
     title: '',
     dataSelectionReason: '',
@@ -71,6 +86,10 @@ const ReportWriter = ({ analysisResult, onBack }) => {
   
   const handleInputChange = (field, value) => {
     setReportData(prev => ({ ...prev, [field]: value }));
+    // 그래프 타입 변경은 즉시 반영 (안전성 검사 불필요)
+    if (field === 'selectedChartType') {
+      return; // 그래프 타입은 안전성 검사 불필요
+    }
     // 디바운싱을 위해 약간의 지연 후 검사
     setTimeout(() => {
       checkAndWarn(field, value);
@@ -134,8 +153,13 @@ const ReportWriter = ({ analysisResult, onBack }) => {
   // 그래프 미리보기용 ref
   const chartContainerRef = useRef(null);
   
+  // 디버깅: 컴포넌트가 렌더링되는지 확인
+  useEffect(() => {
+    console.log('ReportWriter rendered', { analysisResult: !!analysisResult, reportData });
+  }, [analysisResult, reportData]);
+  
   return (
-    <div className="space-y-6 animate-fade-in-up pb-12">
+    <div className="space-y-6 animate-fade-in-up pb-12 w-full">
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={onBack}
