@@ -31,7 +31,6 @@ const App = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [detectedBadWord, setDetectedBadWord] = useState('');
   const [readyToStart, setReadyToStart] = useState(false);
-  const [showLinkCopied, setShowLinkCopied] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
   const [activeFile, setActiveFile] = useState(null);
@@ -469,7 +468,6 @@ const App = () => {
     setView('result');
   };
 
-  const { Copy } = Icons;
 
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:480',message:'App render start',data:{view,stagedFilesCount:stagedFiles.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
@@ -485,37 +483,9 @@ const App = () => {
         <div className="flex items-center gap-3 cursor-pointer" onClick={resetApp}>
           <span className="text-2xl">🔮</span>
           <h1 className="text-2xl font-bold neon-text">
-            {APP_CONFIG.title.split(' (')[0]} <span className="text-sm opacity-70">(v16)</span>
+            {APP_CONFIG.title}
           </h1>
         </div>
-        {view !== 'extracting' && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(APP_CONFIG.geminiLink);
-                setShowLinkCopied(true);
-                setTimeout(() => setShowLinkCopied(false), 2000);
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-500 bg-purple-900/50 text-sm"
-            >
-              {showLinkCopied ? '복사됨!' : (
-                <>
-                  <span>링크 복사</span>
-                  <Copy size={16} />
-                </>
-              )}
-            </button>
-            <a
-              href={APP_CONFIG.geminiLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-500 bg-purple-900/50 text-sm"
-            >
-              <span>탐정단 연결</span>
-              <span className="text-lg">→</span>
-            </a>
-          </div>
-        )}
       </header>
 
       <main className="w-full max-w-4xl z-10 min-h-[600px]">

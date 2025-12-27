@@ -12,8 +12,7 @@ export const FORBIDDEN_WORDS = [
 
 // 앱 설정
 export const APP_CONFIG = {
-  title: "데이터 연금술사: 언리미티드 (v16)",
-  geminiLink: "https://gemini.google.com/share/c94006df0af9"
+  title: "인공지능 원리로 배우는 자료와 가능성"
 };
 
 
