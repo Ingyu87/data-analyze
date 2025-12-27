@@ -61,7 +61,16 @@ const KosisSearch = ({ onDataSelect }) => {
       }
 
       // 통계 데이터 조회
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/KosisSearch.jsx:63',message:'Before getKosisStatisticsData',data:{statId,statItemKeys:Object.keys(statItem)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
+      
       const data = await getKosisStatisticsData(statId);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/KosisSearch.jsx:65',message:'After getKosisStatisticsData',data:{hasData:!!data,dataType:typeof data,dataIsArray:Array.isArray(data),dataKeys:data&&!Array.isArray(data)?Object.keys(data):[],dataPreview:JSON.stringify(data)?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
+      
       if (!data) {
         throw new Error('데이터를 가져올 수 없습니다');
       }
@@ -71,6 +80,10 @@ const KosisSearch = ({ onDataSelect }) => {
         data,
         statItem.TBL_NM || statItem.STATBL_NM || statItem.statName || statItem.name || 'KOSIS 통계'
       );
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/KosisSearch.jsx:75',message:'After convertKosisDataToAppFormat',data:{convertedSuccess:converted.success,convertedMsg:converted.msg,convertedData:converted.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H'})}).catch(()=>{});
+      // #endregion
 
       if (converted.success) {
         // 부모 컴포넌트에 데이터 전달
