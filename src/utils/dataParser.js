@@ -26,19 +26,50 @@ export const parseTextToData = (text, fileName) => {
   let cleanText = text.trim();
   const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-  // 헤더 찾기
+  // 헤더 찾기 - 엑셀 파일의 경우 첫 번째 행이 연도일 수 있음
   let headerIdx = -1;
+  let isTimeSeries = false; // 시계열 데이터 여부
+  
   for (let i = 0; i < Math.min(lines.length, 10); i++) {
     if (lines[i].includes(',')) {
-      const parts = lines[i].split(',');
-      // 첫 번째 컬럼이 숫자가 아니면 헤더로 간주
-      if (isNaN(parseFloat(parts[0].replace(/"/g, '')))) {
-        headerIdx = i;
-        if (parts.length >= 2) {
-          xLabel = parts[0].replace(/"/g, '').trim();
-          yLabel = parts[1].replace(/"/g, '').trim();
+      const parts = [];
+      let current = '';
+      let inQuotes = false;
+      for (let j = 0; j < lines[i].length; j++) {
+        const char = lines[i][j];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          parts.push(current.trim().replace(/^"|"$/g, ''));
+          current = '';
+        } else {
+          current += char;
         }
-        break;
+      }
+      parts.push(current.trim().replace(/^"|"$/g, ''));
+      
+      // 첫 번째 컬럼이 숫자가 아니면 헤더로 간주
+      const firstCol = parts[0].replace(/^"|"$/g, '').trim();
+      if (isNaN(parseFloat(firstCol))) {
+        // 첫 번째 행이 연도들로만 구성되어 있는지 확인 (시계열 데이터)
+        const allNumeric = parts.slice(1).every(p => {
+          const cleaned = p.replace(/^"|"$/g, '').trim();
+          return /^\d{4}$/.test(cleaned) || !isNaN(parseFloat(cleaned));
+        });
+        
+        if (allNumeric && parts.length > 2) {
+          // 첫 번째 컬럼이 비어있거나 "단위:" 같은 메타데이터이고, 나머지가 숫자면 시계열 헤더
+          isTimeSeries = true;
+          headerIdx = i;
+          xLabel = "연도";
+          yLabel = "값";
+          break;
+        } else if (parts.length >= 2) {
+          headerIdx = i;
+          xLabel = parts[0].replace(/^"|"$/g, '').trim();
+          yLabel = parts[1].replace(/^"|"$/g, '').trim();
+          break;
+        }
       }
     }
   }
@@ -67,6 +98,73 @@ export const parseTextToData = (text, fileName) => {
     headers = headerParts;
   }
   
+  // 시계열 데이터 처리 (엑셀 파일의 연도별 데이터)
+  if (isTimeSeries && headers.length > 1) {
+    // 첫 번째 컬럼은 행 레이블, 나머지는 연도별 값
+    for (let i = startRow; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.includes(',')) continue;
+      
+      const parts = [];
+      let current = '';
+      let inQuotes = false;
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          parts.push(current.trim().replace(/^"|"$/g, ''));
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      parts.push(current.trim().replace(/^"|"$/g, ''));
+      
+      if (parts.length < 2) continue;
+      
+      const rowLabel = parts[0].replace(/^"|"$/g, '').trim();
+      // "단위:", "총 횟수", "규모 3 이상" 같은 레이블
+      if (!rowLabel || rowLabel.includes('단위') || rowLabel === '') continue;
+      
+      // 각 연도별 값 추출
+      for (let j = 1; j < Math.min(parts.length, headers.length); j++) {
+        const yearLabel = headers[j].replace(/^"|"$/g, '').trim();
+        const valueStr = parts[j].replace(/^"|"$/g, '').replace(/,/g, '').trim();
+        
+        // 연도인지 확인 (4자리 숫자)
+        const isYear = /^\d{4}$/.test(yearLabel);
+        const numMatch = valueStr.match(/-?\d+(\.\d+)?/);
+        
+        if (numMatch) {
+          const value = parseFloat(numMatch[0]);
+          if (!isNaN(value) && value >= 0) { // 음수 제외 (예측값이 아닌 실제 데이터만)
+            const label = isYear ? `${rowLabel} (${yearLabel})` : `${rowLabel} - ${yearLabel}`;
+            dataPoints.push({
+              label,
+              value,
+              originalLabel: rowLabel,
+              year: isYear ? yearLabel : null
+            });
+          }
+        }
+      }
+    }
+    
+    if (dataPoints.length > 0) {
+      return {
+        success: true,
+        data: {
+          name: fileName,
+          xLabel: "연도",
+          yLabel: "값",
+          data: dataPoints
+        }
+      };
+    }
+  }
+  
+  // 일반 CSV 데이터 파싱
   for (let i = startRow; i < lines.length; i++) {
     const line = lines[i];
     let label = null;
