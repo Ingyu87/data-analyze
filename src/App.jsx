@@ -26,6 +26,10 @@ import { APP_SIGNATURE, APP_CONFIG } from './constants';
 import './App.css';
 
 const App = () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:28',message:'App component function entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  
   const [view, setView] = useState('intro');
   const [stagedFiles, setStagedFiles] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -33,6 +37,10 @@ const App = () => {
   const [readyToStart, setReadyToStart] = useState(false);
   const [showLinkCopied, setShowLinkCopied] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:36',message:'App useState hooks initialized',data:{view},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
 
   const [activeFile, setActiveFile] = useState(null);
   const [extractedPoints, setExtractedPoints] = useState([]);
@@ -471,9 +479,20 @@ const App = () => {
 
   const { Copy } = Icons;
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:480',message:'App render start',data:{view,stagedFilesCount:stagedFiles.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+
   if (view === 'lockdown') {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:485',message:'App returning Lockdown view',data:{detectedBadWord},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     return <Lockdown detectedBadWord={detectedBadWord} onReset={resetApp} />;
   }
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:490',message:'App returning main render',data:{view,hasStylesheet:!!document.querySelector('link[rel="stylesheet"]')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
 
   return (
     <div className="min-h-screen alchemy-gradient flex flex-col items-center p-4">

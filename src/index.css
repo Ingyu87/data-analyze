@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* #region agent log */
+/* CSS loaded check - this comment serves as a marker */
+/* #endregion */
+
 * {
   margin: 0;
   padding: 0;
