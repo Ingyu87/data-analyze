@@ -42,17 +42,19 @@ export default async function handler(req, res) {
       // #endregion
       
       const searchUrls = [
-        // 방법 1: statisticsSearch.do 사용 (키워드 검색 전용)
-        `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&keyword=${encodedQuery}`,
-        // 방법 2: statisticsSearch.do (jsonVD 없음)
+        // 방법 1: statisticsSearch.do (searchNm 파라미터 사용 - 필수일 수 있음)
+        `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&searchNm=${encodedQuery}`,
+        // 방법 2: statisticsSearch.do (keyword와 searchNm 둘 다)
+        `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&keyword=${encodedQuery}&searchNm=${encodedQuery}`,
+        // 방법 3: statisticsSearch.do (keyword만, jsonVD 없음)
         `https://kosis.kr/openapi/statisticsSearch.do?method=getList&apiKey=${encodedApiKey}&format=json&keyword=${encodedQuery}`,
-        // 방법 3: statisticsList.do (orgId=101 통계청, keyword 사용)
+        // 방법 4: statisticsList.do (orgId=101 통계청, keyword 사용)
         `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&orgId=101&keyword=${encodedQuery}`,
-        // 방법 4: statisticsList.do (orgId=301 교육부, keyword 사용)
+        // 방법 5: statisticsList.do (orgId=301 교육부, keyword 사용)
         `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&orgId=301&keyword=${encodedQuery}`,
-        // 방법 5: statisticsList.do (전체 조직, keyword 사용)
+        // 방법 6: statisticsList.do (전체 조직, keyword 사용)
         `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&keyword=${encodedQuery}`,
-        // 방법 6: statisticsList.do (orgId 없이, jsonVD 없음)
+        // 방법 7: statisticsList.do (orgId 없이, jsonVD 없음)
         `https://kosis.kr/openapi/statisticsList.do?method=getList&apiKey=${encodedApiKey}&format=json&keyword=${encodedQuery}`,
       ];
       
@@ -79,7 +81,7 @@ export default async function handler(req, res) {
           console.log(`KOSIS API 응답 ${i + 1} (${response.status}):`, responseText.substring(0, 500));
           
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:62',message:'After API response',data:{attempt:i+1,status:response.status,responseLength:responseText.length,responsePreview:responseText.substring(0,200),isArray:responseText.trim().startsWith('['),isObject:responseText.trim().startsWith('{'),firstChars:responseText.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/kosis-search.js:82',message:'After API response',data:{attempt:i+1,status:response.status,url:searchUrl.substring(0,150),responseLength:responseText.length,responsePreview:responseText.substring(0,300),isArray:responseText.trim().startsWith('['),isObject:responseText.trim().startsWith('{'),fullResponse:responseText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
           // #endregion
           
           if (response.ok) {
