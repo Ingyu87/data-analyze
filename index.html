@@ -5,56 +5,9 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>데이터 연금술사: 언리미티드 (v16)</title>
-    <script>
-      // #region agent log
-      console.log('[DEBUG] index.html script tag executing');
-      console.log('[DEBUG] document.readyState:', document.readyState);
-      console.log('[DEBUG] root element exists:', !!document.getElementById('root'));
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:9',message:'HTML document loaded',data:{readyState:document.readyState,hasRoot:!!document.getElementById('root')},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-    </script>
 </head>
 <body>
-    <div id="root" style="background: red; min-height: 100vh; padding: 20px; color: white;">
-      <h1>DEBUG: Root element loaded</h1>
-      <p>If you see this, HTML is loading but React is not mounting.</p>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      // #region agent log
-      console.log('[DEBUG] ========== APP INIT START ==========');
-      console.log('[DEBUG] Setting up global error handler');
-      console.log('[DEBUG] Document readyState:', document.readyState);
-      console.log('[DEBUG] Root element:', document.getElementById('root'));
-      
-      // Check if script tags are loaded
-      const scripts = document.querySelectorAll('script[type="module"]');
-      console.log('[DEBUG] Module scripts found:', scripts.length);
-      scripts.forEach((script, i) => {
-        console.log(`[DEBUG] Script ${i}:`, script.src || script.textContent?.substring(0, 50));
-      });
-      
-      window.addEventListener('error', function(e) {
-        console.error('[DEBUG] ========== GLOBAL ERROR ==========');
-        console.error('[DEBUG] Message:', e.message);
-        console.error('[DEBUG] Filename:', e.filename);
-        console.error('[DEBUG] Line:', e.lineno);
-        console.error('[DEBUG] Error object:', e.error);
-        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:16',message:'Global error caught',data:{message:e.message,filename:e.filename,lineno:e.lineno,error:e.error?.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-      });
-      window.addEventListener('unhandledrejection', function(e) {
-        console.error('[DEBUG] ========== UNHANDLED REJECTION ==========');
-        console.error('[DEBUG] Reason:', e.reason);
-        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:22',message:'Unhandled promise rejection',data:{reason:e.reason?.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-      });
-      
-      // Check after a delay
-      setTimeout(() => {
-        console.log('[DEBUG] ========== 2 SECONDS LATER ==========');
-        console.log('[DEBUG] Root element innerHTML:', document.getElementById('root')?.innerHTML?.substring(0, 100));
-        console.log('[DEBUG] React root mounted:', !!document.querySelector('#root > *:not(script)'));
-      }, 2000);
-      // #endregion
-    </script>
 </body>
 </html>
