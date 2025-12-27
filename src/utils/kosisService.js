@@ -115,12 +115,13 @@ export const searchKosisStatistics = async (query) => {
 /**
  * 통계표 데이터 조회
  * @param {string} statId - 통계표 ID
+ * @param {Object} options - 추가 옵션 (orgId, statId 등)
  * @returns {Promise<Object>} 통계 데이터
  */
-export const getKosisStatisticsData = async (statId) => {
+export const getKosisStatisticsData = async (statId, options = {}) => {
   try {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:120',message:'getKosisStatisticsData start',data:{statId},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/utils/kosisService.js:120',message:'getKosisStatisticsData start',data:{statId,options},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
     // #endregion
     
     const response = await fetch('/api/kosis-search', {
@@ -128,7 +129,12 @@ export const getKosisStatisticsData = async (statId) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ statId }),
+      body: JSON.stringify({ 
+        statId,
+        orgId: options.orgId,
+        statId_field: options.statId,
+        tblId: options.tblId
+      }),
     });
 
     // #region agent log

@@ -62,10 +62,15 @@ const KosisSearch = ({ onDataSelect }) => {
 
       // 통계 데이터 조회
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/KosisSearch.jsx:63',message:'Before getKosisStatisticsData',data:{statId,statItemKeys:Object.keys(statItem)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/KosisSearch.jsx:63',message:'Before getKosisStatisticsData',data:{statId,statItemKeys:Object.keys(statItem),orgId:statItem.ORG_ID,statId_field:statItem.STAT_ID},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
       // #endregion
       
-      const data = await getKosisStatisticsData(statId);
+      // 통계표 데이터 조회 시 추가 정보 전달
+      const data = await getKosisStatisticsData(statId, {
+        orgId: statItem.ORG_ID,
+        statId: statItem.STAT_ID,
+        tblId: statItem.TBL_ID
+      });
       
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/KosisSearch.jsx:65',message:'After getKosisStatisticsData',data:{hasData:!!data,dataType:typeof data,dataIsArray:Array.isArray(data),dataKeys:data&&!Array.isArray(data)?Object.keys(data):[],dataPreview:JSON.stringify(data)?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});

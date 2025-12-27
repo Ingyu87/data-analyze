@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { searchQuery, statId } = req.body;
+  const { searchQuery, statId, orgId, statId_field, tblId } = req.body;
   const apiKey = process.env.KOSIS_API_KEY;
 
   // #region agent log
@@ -285,19 +285,26 @@ export default async function handler(req, res) {
       // 통계표 데이터 조회
       const encodedApiKey = encodeURIComponent(apiKey.trim());
       const encodedStatId = encodeURIComponent(statId.trim());
+      const encodedOrgId = orgId ? encodeURIComponent(orgId.trim()) : '';
+      const encodedStatIdField = statId_field ? encodeURIComponent(statId_field.trim()) : '';
+      const encodedTblId = tblId ? encodeURIComponent(tblId.trim()) : '';
       
       const dataUrls = [
-        // 방법 1: TBL_ID 사용 (통계표 ID)
-        `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&tblId=${encodedStatId}`,
-        // 방법 2: userStatsId 사용
+        // 방법 1: TBL_ID + ORG_ID + STAT_ID (가장 완전한 형태)
+        orgId && statId_field ? `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&tblId=${encodedTblId || encodedStatId}&orgId=${encodedOrgId}&statId=${encodedStatIdField}` : null,
+        // 방법 2: TBL_ID + ORG_ID
+        orgId ? `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&tblId=${encodedTblId || encodedStatId}&orgId=${encodedOrgId}` : null,
+        // 방법 3: TBL_ID만 사용
+        `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&tblId=${encodedTblId || encodedStatId}`,
+        // 방법 4: userStatsId 사용
         `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&jsonVD=Y&userStatsId=${encodedStatId}`,
-        // 방법 3: TBL_ID 사용 (jsonVD 없음)
-        `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&tblId=${encodedStatId}`,
-        // 방법 4: userStatsId 사용 (jsonVD 없음)
+        // 방법 5: TBL_ID 사용 (jsonVD 없음)
+        `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&tblId=${encodedTblId || encodedStatId}`,
+        // 방법 6: userStatsId 사용 (jsonVD 없음)
         `https://kosis.kr/openapi/statisticsData.do?method=getList&apiKey=${encodedApiKey}&format=json&userStatsId=${encodedStatId}`,
-        // 방법 5: 간단한 형식
+        // 방법 7: 간단한 형식
         `https://kosis.kr/openapi/statisticsData.do?apiKey=${encodedApiKey}&format=json&userStatsId=${encodedStatId}`
-      ];
+      ].filter(url => url !== null);
       
       let lastError = null;
       for (const dataUrl of dataUrls) {
