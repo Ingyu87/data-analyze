@@ -30,7 +30,7 @@ const ChartRender = ({ data, chartType = 'line' }) => {
     };
 
     if (data.type === 'single') {
-      const x = data.dataset.map((d) => d.originalLabel);
+      const x = data.dataset.map((d) => d.originalLabel || d.label);
       const y = data.dataset.map((d) => d.value);
       
       const traces = [];

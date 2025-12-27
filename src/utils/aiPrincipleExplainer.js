@@ -2,7 +2,9 @@
  * 각 활동 단계별로 사용된 AI 원리를 초등학생 수준으로 설명합니다.
  */
 
-export const getAIPrincipleExplanation = (step) => {
+import { generateDynamicExample, getFallbackExample } from './aiPrincipleExampleGenerator';
+
+export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicExample = null) => {
   const explanations = {
     'file-upload': {
       title: '📁 1단계: 파일 읽기 - 패턴 찾기',
@@ -13,7 +15,7 @@ export const getAIPrincipleExplanation = (step) => {
 
 이렇게 파일에서 데이터를 찾아내는 것을 "패턴 인식(Pattern Recognition)"이라고 해요. 컴퓨터가 반복해서 연습해서 배운 거예요!`,
       icon: '🔍',
-      example: '엑셀 파일에서 숫자와 글자를 구분해서 읽어요.'
+      example: dynamicExample || '엑셀 파일에서 숫자와 글자를 구분해서 읽어요.'
     },
     
     'data-parsing': {
@@ -25,7 +27,7 @@ export const getAIPrincipleExplanation = (step) => {
 
 컴퓨터가 파일의 구조(어디가 제목이고, 어디가 데이터인지)를 알아채서, 숫자와 글자를 제대로 구분하는 것을 "구조 인식(Structure Recognition)"이라고 해요. 패턴을 찾아서 데이터를 정리하는 거예요!`,
       icon: '📝',
-      example: 'CSV 파일의 "이름, 숫자" 형식을 보고 데이터로 바꿔요.'
+      example: dynamicExample || 'CSV 파일의 "이름, 숫자" 형식을 보고 데이터로 바꿔요.'
     },
     
     'graph-visualization': {
@@ -37,7 +39,7 @@ export const getAIPrincipleExplanation = (step) => {
 
 꺾은선 그래프는 숫자들이 어떻게 변하는지 보여주고, 막대 그래프는 각 숫자가 얼마나 큰지 비교해서 보여줘요. 이렇게 숫자를 그림으로 바꾸는 것을 "데이터 시각화(Data Visualization)"라고 해요!`,
       icon: '📈',
-      example: '10, 15, 20, 25라는 숫자를 받아서 그래프로 그려요.'
+      example: dynamicExample || getFallbackExample(step, analysisResult) || '10, 15, 20, 25라는 숫자를 받아서 그래프로 그려요.'
     },
     
     'trend-analysis': {
@@ -49,7 +51,7 @@ export const getAIPrincipleExplanation = (step) => {
 
 예를 들어, 1월에 10개, 2월에 12개, 3월에 14개라면, 컴퓨터가 "매달 2개씩 늘어나고 있네!"라고 계산하는 거예요. 이렇게 패턴을 찾는 것을 "선형 회귀(Linear Regression)"라고 해요. 마치 우리가 수학 문제에서 규칙을 찾는 것처럼요!`,
       icon: '🔎',
-      example: '그래프의 점들을 보고 "매달 2씩 증가한다"는 규칙을 찾아요.'
+      example: dynamicExample || getFallbackExample(step, analysisResult) || '그래프의 점들을 보고 "매달 2씩 증가한다"는 규칙을 찾아요.'
     },
     
     'correlation-analysis': {
@@ -63,7 +65,7 @@ export const getAIPrincipleExplanation = (step) => {
 
 이렇게 두 데이터의 관계를 찾는 것을 "상관관계 분석(Correlation Analysis)"이라고 해요. 마치 두 친구가 함께 다니는지, 아니면 서로 반대로 다니는지 확인하는 것처럼요!`,
       icon: '🤝',
-      example: '온도 데이터와 감기 환자 데이터를 비교해서 친구인지 확인해요.'
+      example: dynamicExample || getFallbackExample(step, analysisResult) || '온도 데이터와 감기 환자 데이터를 비교해서 친구인지 확인해요.'
     },
     
     'ai-explanation': {
@@ -77,7 +79,7 @@ export const getAIPrincipleExplanation = (step) => {
 
 컴퓨터가 많은 책과 글을 읽어서 배운 거예요. 그래서 우리가 이해하기 쉽게 설명할 수 있는 거죠!`,
       icon: '💬',
-      example: '통계 데이터를 받아서 "롤러코스터처럼 빠르게 올라가고 있어요!"라고 설명해요.'
+      example: dynamicExample || getFallbackExample(step, analysisResult) || '통계 데이터를 받아서 "롤러코스터처럼 빠르게 올라가고 있어요!"라고 설명해요.'
     },
     
     'prediction': {
@@ -91,7 +93,7 @@ export const getAIPrincipleExplanation = (step) => {
 
 10년 후, 20년 후도 같은 방법으로 예측할 수 있어요. 하지만 시간이 길수록 정확도는 낮아질 수 있어요!`,
       icon: '🔮',
-      example: '과거 10개월 데이터를 보고 다음 달 값을 예측해요.'
+      example: dynamicExample || getFallbackExample(step, analysisResult) || '과거 10개월 데이터를 보고 다음 달 값을 예측해요.'
     },
     
     'question-generation': {

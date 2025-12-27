@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons } from './Icons';
 import ChartRender from './ChartRender';
-import AIPrincipleCard from './AIPrincipleCard';
+import AIPrincipleAccordion from './AIPrincipleAccordion';
 import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
+import { generateDynamicExample } from '../utils/aiPrincipleExampleGenerator';
 import { generateQuestions, generateCorrelationQuestions } from '../utils/questionGenerator';
 import { generateReportPNG } from '../utils/reportGenerator';
 import Quiz from './Quiz';
@@ -12,6 +13,33 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
   const [chartType, setChartType] = useState('line');
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizResults, setQuizResults] = useState(null);
+  const [dynamicExamples, setDynamicExamples] = useState({});
+  
+  // 동적 예시 생성
+  useEffect(() => {
+    if (!analysisResult) return;
+    
+    const steps = analysisResult.type === 'single' 
+      ? ['graph-visualization', 'trend-analysis', 'ai-explanation', 'prediction']
+      : ['graph-visualization', 'trend-analysis', 'correlation-analysis', 'ai-explanation', 'prediction'];
+    
+    const loadExamples = async () => {
+      const examples = {};
+      for (const step of steps) {
+        try {
+          const example = await generateDynamicExample(step, analysisResult);
+          if (example) {
+            examples[step] = example;
+          }
+        } catch (error) {
+          console.log(`예시 생성 실패 (${step}):`, error);
+        }
+      }
+      setDynamicExamples(examples);
+    };
+    
+    loadExamples();
+  }, [analysisResult]);
   
   // 문제 생성
   const questions = React.useMemo(() => {
@@ -39,6 +67,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-12">
+      {/* 그래프 섹션 */}
       <div className="glass-panel rounded-xl p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -70,41 +99,38 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
             </div>
           )}
         </div>
-        <div id="chart-div" className="w-full h-[400px] bg-black/20 rounded-lg"></div>
+        <div id="chart-div" className="w-full h-[400px] bg-black/20 rounded-lg mb-4"></div>
         <ChartRender data={analysisResult} chartType={chartType} />
-      </div>
-      
-      {/* AI 원리 설명 섹션 */}
-      <div className="glass-panel rounded-xl p-6 border-l-4 border-blue-500">
-        <h3 className="text-xl font-bold text-blue-300 mb-4">🤖 이 단계에서 사용된 AI 원리</h3>
-        <div className="space-y-4">
-          <AIPrincipleCard 
-            step="graph-visualization" 
-            explanation={getAIPrincipleExplanation('graph-visualization')} 
-          />
-          <AIPrincipleCard 
-            step="trend-analysis" 
-            explanation={getAIPrincipleExplanation('trend-analysis')} 
-          />
-          {analysisResult.type === 'multi' && (
-            <AIPrincipleCard 
-              step="correlation-analysis" 
-              explanation={getAIPrincipleExplanation('correlation-analysis')} 
+        
+        {/* 그래프 관련 AI 원리 */}
+        <div className="mt-4 pt-4 border-t border-purple-500/30">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-purple-300">🤖 이 그래프에서 사용된 AI 원리</span>
+          </div>
+          <div className="space-y-1">
+            <AIPrincipleAccordion 
+              step="graph-visualization" 
+              explanation={getAIPrincipleExplanation('graph-visualization', analysisResult, dynamicExamples['graph-visualization'])} 
             />
-          )}
-          <AIPrincipleCard 
-            step="ai-explanation" 
-            explanation={getAIPrincipleExplanation('ai-explanation')} 
-          />
-          <AIPrincipleCard 
-            step="prediction" 
-            explanation={getAIPrincipleExplanation('prediction')} 
-          />
+            <AIPrincipleAccordion 
+              step="trend-analysis" 
+              explanation={getAIPrincipleExplanation('trend-analysis', analysisResult, dynamicExamples['trend-analysis'])} 
+            />
+            {analysisResult.type === 'multi' && (
+              <AIPrincipleAccordion 
+                step="correlation-analysis" 
+                explanation={getAIPrincipleExplanation('correlation-analysis', analysisResult, dynamicExamples['correlation-analysis'])} 
+              />
+            )}
+          </div>
         </div>
       </div>
       
+      {/* 데이터 설명 섹션 */}
       <div className="glass-panel rounded-xl p-6 border-l-4 border-yellow-500">
-        <h3 className="text-lg font-bold text-yellow-200 mb-4">📚 초등학생을 위한 쉬운 설명</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-yellow-200">📚 초등학생을 위한 쉬운 설명</h3>
+        </div>
         <div className="text-purple-100 space-y-4 leading-relaxed">
           {analysisResult.type === 'single' ? (
             <>
@@ -138,7 +164,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
               )}
               
               <div className="p-4 bg-green-900/30 rounded border border-green-500/30">
-                <h4 className="text-green-300 font-bold mb-2">🔮 미래 예측</h4>
+                <h4 className="text-green-300 font-bold mb-2">🔮 단기 미래 예측</h4>
                 <p className="mb-2">
                   다음 단계에서는 숫자가 약{' '}
                   <span className="text-yellow-300 font-bold text-xl">
@@ -157,40 +183,6 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
                     <p className="mt-2 text-sm text-green-200">
                       신뢰도: {analysisResult.predictionEvidence.confidence}
                     </p>
-                  </div>
-                )}
-                
-                {/* 장기 예측 (10년 후, 20년 후) */}
-                {analysisResult.longTermPrediction && (
-                  <div className="mt-4 pt-4 border-t border-green-500/30">
-                    <h5 className="text-green-200 font-bold mb-2">📅 장기 예측</h5>
-                    <div className="space-y-2 text-sm">
-                      <p>
-                        <strong>10년 후:</strong> {analysisResult.longTermPrediction.prediction10Years}
-                        <span className="text-yellow-300 font-bold ml-2">
-                          (예상값: {analysisResult.longTermPrediction.value10Years.toFixed(1)})
-                        </span>
-                      </p>
-                      <p>
-                        <strong>20년 후:</strong> {analysisResult.longTermPrediction.prediction20Years}
-                        <span className="text-yellow-300 font-bold ml-2">
-                          (예상값: {analysisResult.longTermPrediction.value20Years.toFixed(1)})
-                        </span>
-                      </p>
-                      {analysisResult.longTermPrediction.reasons && (
-                        <div className="mt-2">
-                          <p className="font-semibold mb-1">이유:</p>
-                          <ul className="list-disc list-inside space-y-1">
-                            {analysisResult.longTermPrediction.reasons.map((reason, idx) => (
-                              <li key={idx}>{reason}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {analysisResult.longTermPrediction.warning && (
-                        <p className="text-yellow-300 mt-2">{analysisResult.longTermPrediction.warning}</p>
-                      )}
-                    </div>
                   </div>
                 )}
               </div>
@@ -248,10 +240,80 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
               <div className="text-sm text-purple-300 mt-2">
                 (상관계수: {analysisResult.correlation.toFixed(2)})
               </div>
+              
+              {/* 예측 관련 AI 원리 */}
+              <div className="mt-4 pt-4 border-t border-green-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-green-300">🤖 이 예측에서 사용된 AI 원리</span>
+                </div>
+                <AIPrincipleAccordion 
+                  step="prediction" 
+                  explanation={getAIPrincipleExplanation('prediction')} 
+                />
+              </div>
             </>
           )}
         </div>
+        
+        {/* 설명 관련 AI 원리 */}
+        <div className="mt-4 pt-4 border-t border-yellow-500/30">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-yellow-300">🤖 이 설명에서 사용된 AI 원리</span>
+          </div>
+          <AIPrincipleAccordion 
+            step="ai-explanation" 
+            explanation={getAIPrincipleExplanation('ai-explanation', analysisResult, dynamicExamples['ai-explanation'])} 
+          />
+        </div>
       </div>
+      
+      {/* 미래 예측 섹션 (단일 데이터셋의 경우) */}
+      {analysisResult.type === 'single' && analysisResult.longTermPrediction && (
+        <div className="glass-panel rounded-xl p-6 border-l-4 border-green-500">
+          <h3 className="text-lg font-bold text-green-200 mb-4">🔮 장기 미래 예측</h3>
+          <div className="p-4 bg-green-900/30 rounded border border-green-500/30">
+            <div className="space-y-2 text-sm">
+              <p>
+                <strong>10년 후:</strong> {analysisResult.longTermPrediction.prediction10Years}
+                <span className="text-yellow-300 font-bold ml-2">
+                  (예상값: {analysisResult.longTermPrediction.value10Years.toFixed(1)})
+                </span>
+              </p>
+              <p>
+                <strong>20년 후:</strong> {analysisResult.longTermPrediction.prediction20Years}
+                <span className="text-yellow-300 font-bold ml-2">
+                  (예상값: {analysisResult.longTermPrediction.value20Years.toFixed(1)})
+                </span>
+              </p>
+              {analysisResult.longTermPrediction.reasons && (
+                <div className="mt-2">
+                  <p className="font-semibold mb-1">이유:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {analysisResult.longTermPrediction.reasons.map((reason, idx) => (
+                      <li key={idx}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {analysisResult.longTermPrediction.warning && (
+                <p className="text-yellow-300 mt-2">{analysisResult.longTermPrediction.warning}</p>
+              )}
+            </div>
+          </div>
+          
+          {/* 예측 관련 AI 원리 */}
+          <div className="mt-4 pt-4 border-t border-green-500/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-green-300">🤖 이 예측에서 사용된 AI 원리</span>
+            </div>
+            <AIPrincipleAccordion 
+              step="prediction" 
+              explanation={getAIPrincipleExplanation('prediction', analysisResult, dynamicExamples['prediction'])} 
+            />
+          </div>
+        </div>
+      )}
+      
       {!showQuiz && !quizResults && (
         <div className="glass-panel rounded-xl p-6">
           <h3 className="text-xl font-bold text-white mb-4 text-center">📚 그래프 해석 문제</h3>

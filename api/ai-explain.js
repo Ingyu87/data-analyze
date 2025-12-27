@@ -63,6 +63,67 @@ export default async function handler(req, res) {
   "predictionEvidence": ["예측 근거1", "예측 근거2"]
 }`;
 
+    } else if (type === 'principle-example') {
+      // AI 원리 설명의 동적 예시 생성
+      const { step, analysisResult } = data;
+      
+      let dataContext = '';
+      
+      if (step === 'graph-visualization') {
+        if (analysisResult.type === 'single' && analysisResult.dataset) {
+          const sampleData = analysisResult.dataset.slice(0, 5);
+          const dataPoints = sampleData.map(d => `${d.label || d.originalLabel}: ${d.value}`).join(', ');
+          dataContext = `데이터 이름: ${analysisResult.title}
+실제 데이터 예시: ${dataPoints}
+데이터 포인트 수: ${analysisResult.dataset.length}개`;
+        }
+      } else if (step === 'trend-analysis') {
+        if (analysisResult.type === 'single') {
+          dataContext = `데이터 이름: ${analysisResult.title}
+변화 추세: ${analysisResult.trendDesc || analysisResult.trend}
+평균 변화량: ${analysisResult.avgChange || '0'}
+데이터 포인트 수: ${analysisResult.dataset?.length || 0}개`;
+        }
+      } else if (step === 'correlation-analysis') {
+        if (analysisResult.type === 'multi') {
+          dataContext = `데이터 1: ${analysisResult.file1}
+데이터 2: ${analysisResult.file2}
+상관계수: ${analysisResult.correlation.toFixed(2)}
+관계 설명: ${analysisResult.corrTitle || ''}`;
+        }
+      } else if (step === 'ai-explanation') {
+        if (analysisResult.childExplanation) {
+          dataContext = `데이터 이름: ${analysisResult.title || analysisResult.file1}
+설명 요약: ${analysisResult.childExplanation.summary || ''}
+트렌드: ${analysisResult.trendDesc || ''}`;
+        }
+      } else if (step === 'prediction') {
+        if (analysisResult.nextVal !== undefined) {
+          dataContext = `데이터 이름: ${analysisResult.title || analysisResult.file1}
+현재 마지막 값: ${analysisResult.dataset?.[analysisResult.dataset.length - 1]?.value || 'N/A'}
+예측된 다음 값: ${analysisResult.nextVal.toFixed(1)}
+장기 예측 (10년 후): ${analysisResult.longTermPrediction?.value10Years?.toFixed(1) || 'N/A'}
+장기 예측 (20년 후): ${analysisResult.longTermPrediction?.value20Years?.toFixed(1) || 'N/A'}`;
+        }
+      }
+      
+      prompt = `당신은 초등학생을 위한 친절한 AI 원리 설명 전문가입니다. 다음 AI 원리 단계에서 실제 데이터를 기반으로 구체적인 예시를 만들어주세요.
+
+AI 원리 단계: ${step}
+${dataContext}
+
+요구사항:
+1. 제공된 실제 데이터를 반드시 사용해서 예시를 만들어주세요
+2. 초등학생이 이해하기 쉬운 쉬운 말로 작성하세요
+3. 한 문장으로 간결하게 작성하세요 (50자 이내)
+4. 실제 데이터의 구체적인 숫자나 이름을 포함하세요
+5. 이모지나 특수문자는 사용하지 마세요
+
+응답 형식:
+{
+  "example": "실제 데이터를 사용한 구체적인 예시 한 문장"
+}`;
+
     } else if (type === 'correlation') {
       // 상관관계 설명
       const { data1Name, data2Name, correlation, data1Stats, data2Stats, realWorldExample } = data;

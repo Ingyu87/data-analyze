@@ -67,3 +67,5 @@
 {"location":"App.jsx:480","message":"App render start","data":{"view":"intro","stagedFilesCount":0},"timestamp":1766849439764,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
 {"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":2},"timestamp":1766849450965,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
 {"location":"App.jsx:480","message":"App render start","data":{"view":"staging","stagedFilesCount":2},"timestamp":1766849451038,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"result","stagedFilesCount":2},"timestamp":1766849593669,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"App.jsx:480","message":"App render start","data":{"view":"result","stagedFilesCount":2},"timestamp":1766849593793,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
