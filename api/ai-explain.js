@@ -183,24 +183,29 @@ ${dataContext}
       if (analysisResult) {
         if (analysisResult.type === 'single' && analysisResult.dataset) {
           // 단일 데이터셋
-          const sampleData = analysisResult.dataset.slice(0, 10).map(d => 
-            `${d.label || d.originalLabel || '항목'}: ${d.value}`
+          const dataset = analysisResult.dataset || [];
+          const allDataPoints = dataset.map(d => 
+            `${d.year || d.label || d.originalLabel || '항목'}: ${d.value}`
           ).join(', ');
-          const allData = analysisResult.dataset.map(d => d.value);
+          const allData = dataset.map(d => d.value);
           const maxVal = Math.max(...allData);
           const minVal = Math.min(...allData);
           const avgVal = allData.reduce((a, b) => a + b, 0) / allData.length;
+          const maxItem = dataset.find(d => d.value === maxVal) || {};
+          const minItem = dataset.find(d => d.value === minVal) || {};
           
-          graphDataInfo = `실제 그래프 데이터:
-- 데이터 이름: ${analysisResult.title || '데이터'}
-- 데이터 포인트 수: ${analysisResult.dataset.length}개
-- 데이터 예시: ${sampleData}${analysisResult.dataset.length > 10 ? '...' : ''}
-- 최대값: ${maxVal.toFixed(1)}
-- 최소값: ${minVal.toFixed(1)}
+          graphDataInfo = `실제 그래프 데이터 (반드시 이 데이터를 참고하여 피드백 작성):
+- 데이터 이름: ${analysisResult.title || analysisResult.name || '데이터'}
+- 전체 데이터: ${allDataPoints}
+- 데이터 포인트 수: ${dataset.length}개
+- 최대값: ${maxVal.toFixed(1)} (${maxItem.year || maxItem.label || '해당 항목'})
+- 최소값: ${minVal.toFixed(1)} (${minItem.year || minItem.label || '해당 항목'})
 - 평균값: ${avgVal.toFixed(1)}
-- 변화 추세: ${analysisResult.trendDesc || analysisResult.trend || '알 수 없음'}
+- 변화 추세: ${analysisResult.trendDesc || analysisResult.trend || analysisResult.analysis?.direction || '알 수 없음'}
+- 평균 변화량: ${analysisResult.avgChange !== undefined ? analysisResult.avgChange.toFixed(2) : 'N/A'}
 - 예측된 다음 값: ${analysisResult.nextVal !== undefined ? analysisResult.nextVal.toFixed(1) : 'N/A'}
-- 선택한 그래프 타입: ${reportData.selectedChartType || 'line'}`;
+- 선택한 그래프 타입: ${reportData.selectedChartType || 'line'}
+- 데이터 특성: ${dataset.some(d => d.year) ? '시계열 데이터 (연도별)' : '항목별 데이터'}`;
         } else if (analysisResult.type === 'multi') {
           // 복수 데이터셋 (상관관계)
           const data1Sample = analysisResult.dataset1?.slice(0, 5).map(d => d.value).join(', ') || '';
