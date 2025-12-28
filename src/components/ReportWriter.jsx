@@ -406,11 +406,17 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
                 <div className="chart-container">
                   <ChartRender
                     data={{
-                      type: analysisResult?.type === 'multi-dataset' ? 'multi-dataset' : 'single',
-                      dataset: analysisResult?.dataset || [],
-                      title: analysisResult?.title || analysisResult?.name,
-                      xLabel: analysisResult?.xLabel || '항목',
-                      yLabel: analysisResult?.yLabel || '값'
+                      type: data?.type === 'multi-dataset' ? 'multi-dataset' : 'single',
+                      dataset: data?.type === 'multi-dataset'
+                        ? (data.datasets[selectedDatasetIndex]?.data || [])
+                        : (data?.type === 'multi-series' 
+                          ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                          : (data?.data || [])),
+                      title: data?.name,
+                      xLabel: data?.xLabel || '항목',
+                      yLabel: data?.type === 'multi-dataset' 
+                        ? (data.datasets[selectedDatasetIndex]?.name || '값')
+                        : (data?.yLabel || '값')
                     }}
                     chartType="bar"
                     chartDivId="report-chart-bar"
@@ -428,11 +434,17 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
                 <div className="chart-container">
                   <ChartRender
                     data={{
-                      type: analysisResult?.type === 'multi-dataset' ? 'multi-dataset' : 'single',
-                      dataset: analysisResult?.dataset || [],
-                      title: analysisResult?.title || analysisResult?.name,
-                      xLabel: analysisResult?.xLabel || '항목',
-                      yLabel: analysisResult?.yLabel || '값'
+                      type: data?.type === 'multi-dataset' ? 'multi-dataset' : 'single',
+                      dataset: data?.type === 'multi-dataset'
+                        ? (data.datasets[selectedDatasetIndex]?.data || [])
+                        : (data?.type === 'multi-series' 
+                          ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                          : (data?.data || [])),
+                      title: data?.name,
+                      xLabel: data?.xLabel || '항목',
+                      yLabel: data?.type === 'multi-dataset' 
+                        ? (data.datasets[selectedDatasetIndex]?.name || '값')
+                        : (data?.yLabel || '값')
                     }}
                     chartType="line"
                     chartDivId="report-chart-line"
