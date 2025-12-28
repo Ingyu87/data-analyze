@@ -182,11 +182,17 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
               
               {/* 데이터 기반 구체적 설명 */}
               {(() => {
-                const data = analysisResult.dataset;
-                const maxItem = data.reduce((max, d) => d.value > max.value ? d : max, data[0]);
-                const minItem = data.reduce((min, d) => d.value < min.value ? d : min, data[0]);
-                const total = data.reduce((sum, d) => sum + d.value, 0);
-                const avg = total / data.length;
+                const data = analysisResult.dataset || [];
+                if (data.length === 0) return null;
+                
+                // 유효한 값만 필터링
+                const validData = data.filter(d => d && d.value !== undefined && d.value !== null && !isNaN(d.value));
+                if (validData.length === 0) return null;
+                
+                const maxItem = validData.reduce((max, d) => (d.value > max.value ? d : max), validData[0]);
+                const minItem = validData.reduce((min, d) => (d.value < min.value ? d : min), validData[0]);
+                const total = validData.reduce((sum, d) => sum + (d.value || 0), 0);
+                const avg = total / validData.length;
                 
                 return (
                   <div className="space-y-3">

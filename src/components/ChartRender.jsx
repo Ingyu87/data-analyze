@@ -349,7 +349,13 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
           const series = data.series[i];
           const seriesValues = years.map(year => {
             const point = series.data.find(p => p.year === year);
-            return point ? point.value : null;
+            const val = point ? point.value : null;
+            // #region agent log
+            if (val === undefined || (val !== null && isNaN(val))) {
+              fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/components/ChartRender.jsx:350', message: 'Invalid value in multi-series', data: { seriesName: series.name, year, value: val, hasPoint: !!point }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'G' }) }).catch(() => { });
+            }
+            // #endregion
+            return (val !== undefined && val !== null && !isNaN(val)) ? val : null;
           });
 
           if (chartType === 'line') {
@@ -360,7 +366,7 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
               name: series.name,
               line: { color: colors[i % colors.length], width: 3 },
               marker: { size: 10, color: colors[i % colors.length] },
-              text: seriesValues.map(v => v !== null ? v.toLocaleString() : ''),
+              text: seriesValues.map(v => (v !== null && v !== undefined && !isNaN(v)) ? v.toLocaleString() : ''),
               textposition: 'top center',
               textfont: { size: 9, color: colors[i % colors.length] },
               type: 'scatter',
@@ -373,7 +379,7 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
               type: 'bar',
               name: series.name,
               marker: { color: colors[i % colors.length] },
-              text: seriesValues.map(v => v !== null ? v.toLocaleString() : ''),
+              text: seriesValues.map(v => (v !== null && v !== undefined && !isNaN(v)) ? v.toLocaleString() : ''),
               textposition: 'outside',
               textfont: { size: 10, color: colors[i % colors.length] },
               hovertemplate: `<b>${series.name}</b><br>연도: %{x}<br>값: %{y:,.0f}<extra></extra>`
