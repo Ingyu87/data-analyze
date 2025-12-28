@@ -6,6 +6,8 @@ import { generateReportPDF } from '../utils/reportPDFGenerator';
 import ChartRender from './ChartRender';
 import AIPrincipleAccordion from './AIPrincipleAccordion';
 import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
+import Quiz from './Quiz';
+import { generateQuestions } from '../utils/questionGenerator';
 
 const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
   const { ArrowLeft } = Icons;
@@ -24,6 +26,20 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
   const [warnings, setWarnings] = useState({});
   const [isChartRendering, setIsChartRendering] = useState(false);
   const chartContainerRef = useRef(null);
+  
+  // 단계별 체크 상태
+  const [checkedSteps, setCheckedSteps] = useState({
+    'file-upload': false,
+    'data-parsing': false,
+    'graph-visualization': false,
+    'trend-analysis': false,
+    'ai-explanation': false,
+    'prediction': false
+  });
+  
+  // 문제풀이 관련 상태
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizResults, setQuizResults] = useState(null);
   
   // 디버깅 로그
   useEffect(() => {
@@ -107,7 +123,23 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
     }, 800);
   };
   
+  // 단계 체크 핸들러
+  const handleStepCheck = (step) => {
+    setCheckedSteps(prev => ({
+      ...prev,
+      [step]: !prev[step]
+    }));
+  };
+  
+  // 모든 필수 단계가 체크되었는지 확인
+  const allStepsChecked = Object.values(checkedSteps).every(checked => checked);
+  
   const handleSubmit = async () => {
+    if (!allStepsChecked) {
+      alert('모든 AI 원리 단계를 확인해주세요. 각 단계의 아코디언을 열어서 내용을 읽고 체크해주세요.');
+      return;
+    }
+    
     if (!reportData.title.trim()) {
       alert('제목을 작성해주세요.');
       return;
@@ -142,6 +174,8 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
     try {
       const feedback = await generateReportFeedback(reportData, analysisResult);
       setAiFeedback(feedback);
+      // 보고서 작성 완료 후 문제풀이 표시
+      setShowQuiz(true);
     } catch (error) {
       console.error('피드백 생성 오류:', error);
       alert('피드백 생성 중 오류가 발생했습니다.');
@@ -159,6 +193,77 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
     }
   };
   
+  // 문제풀이 완료 핸들러
+  const handleQuizComplete = (results) => {
+    setQuizResults(results);
+  };
+  
+  // 문제풀이 결과 PDF 다운로드
+  const handleDownloadQuizPDF = async () => {
+    try {
+      const jsPDF = await import('jspdf');
+      const doc = new jsPDF.default();
+      
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('문제풀이 결과 보고서', 105, 20, { align: 'center' });
+      
+      let yPos = 35;
+      const margin = 20;
+      const pageWidth = doc.internal.pageSize.width;
+      const maxWidth = pageWidth - (margin * 2);
+      
+      // 점수 정보
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`총점: ${quizResults.totalScore}점 / ${quizResults.maxScore}점`, margin, yPos);
+      yPos += 10;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.text(`정답: ${quizResults.correctCount}문제 / ${quizResults.totalQuestions}문제`, margin, yPos);
+      yPos += 15;
+      
+      // 각 문제별 결과
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('문제별 해설', margin, yPos);
+      yPos += 10;
+      
+      quizResults.results.forEach((result, idx) => {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`문제 ${idx + 1}`, margin, yPos);
+        yPos += 7;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        const questionLines = doc.splitTextToSize(result.question, maxWidth);
+        doc.text(questionLines, margin, yPos);
+        yPos += questionLines.length * 5 + 5;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text(result.isCorrect ? '✅ 정답입니다!' : '❌ 틀렸습니다.', margin, yPos);
+        yPos += 7;
+        
+        doc.setFont('helvetica', 'normal');
+        const explanationLines = doc.splitTextToSize(`💡 해설: ${result.explanation}`, maxWidth);
+        doc.text(explanationLines, margin, yPos);
+        yPos += explanationLines.length * 5 + 10;
+      });
+      
+      const fileName = `문제풀이_결과_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+    } catch (error) {
+      console.error('문제풀이 PDF 생성 오류:', error);
+      alert('PDF 생성 중 오류가 발생했습니다.');
+    }
+  };
+  
   // 그래프 타입 정보
   const chartTypes = {
     line: { name: '꺾은선 그래프', icon: '📈', desc: '시간에 따른 변화를 보여줘요' },
@@ -167,6 +272,16 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
     pictograph: { name: '그림그래프', icon: '🎨', desc: '그림으로 수량을 표현해요' }
   };
   
+  // AI 원리 단계 정의
+  const aiPrincipleSteps = [
+    { key: 'file-upload', title: '1단계: 파일 읽기', required: true },
+    { key: 'data-parsing', title: '2단계: 데이터 정리', required: true },
+    { key: 'graph-visualization', title: '3단계: 그래프 만들기', required: true },
+    { key: 'trend-analysis', title: '4단계: 패턴 찾기', required: true },
+    { key: 'ai-explanation', title: '5단계: 쉬운 설명 만들기', required: true },
+    { key: 'prediction', title: '6단계: 미래 예측', required: true }
+  ];
+
   return (
     <div className="space-y-6 animate-fade-in-up pb-12 w-full">
       <div className="flex items-center gap-4 mb-6">
@@ -178,6 +293,39 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
           <span>돌아가기</span>
         </button>
         <h2 className="text-2xl font-bold text-white">📝 보고서 작성</h2>
+      </div>
+      
+      {/* AI 원리 단계별 체크 - 보고서 작성 전 필수 */}
+      <div className="glass-panel rounded-xl p-6 border-l-4 border-blue-500">
+        <h3 className="text-xl font-bold text-blue-300 mb-4">🧠 AI 원리 학습 (필수)</h3>
+        <p className="text-purple-200 mb-4 text-sm">
+          보고서를 작성하기 전에 각 단계에서 사용된 AI 원리를 학습해주세요. 각 단계를 열어서 읽고 체크해주세요!
+        </p>
+        <div className="space-y-2">
+          {aiPrincipleSteps.map((step) => (
+            <div key={step.key} className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={checkedSteps[step.key]}
+                onChange={() => handleStepCheck(step.key)}
+                className="mt-2 w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <div className="flex-1">
+                <AIPrincipleAccordion 
+                  step={step.key} 
+                  explanation={getAIPrincipleExplanation(step.key, analysisResult)} 
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        {!allStepsChecked && (
+          <div className="mt-4 p-3 bg-yellow-900/30 rounded-lg border border-yellow-500/50">
+            <p className="text-yellow-200 text-sm">
+              ⚠️ 모든 AI 원리 단계를 확인하고 체크해주세요. 보고서 작성을 위해 필수입니다!
+            </p>
+          </div>
+        )}
       </div>
       
       <div className="glass-panel rounded-xl p-6 space-y-6">
@@ -353,13 +501,21 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
         <div className="flex justify-center">
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-lg hover:shadow-lg transition disabled:opacity-50 flex items-center gap-2"
+            disabled={isSubmitting || !allStepsChecked}
+            className={`px-8 py-3 text-white font-bold rounded-lg hover:shadow-lg transition flex items-center gap-2 ${
+              isSubmitting || !allStepsChecked
+                ? 'bg-gray-600 opacity-50 cursor-not-allowed'
+                : 'bg-gradient-to-r from-purple-600 to-pink-600'
+            }`}
           >
             {isSubmitting ? (
               <>
                 <span className="animate-spin">⏳</span>
                 AI 선생님이 읽고 있어요...
+              </>
+            ) : !allStepsChecked ? (
+              <>
+                ⚠️ 모든 AI 원리 단계를 확인해주세요
               </>
             ) : (
               <>
@@ -367,20 +523,6 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
               </>
             )}
           </button>
-        </div>
-      </div>
-      
-      {/* 보고서 작성 과정의 AI 원리 */}
-      <div className="glass-panel rounded-xl p-6 border-l-4 border-blue-500">
-        <h3 className="text-xl font-bold text-blue-300 mb-4">🧠 보고서 작성에서 사용된 AI 원리</h3>
-        <p className="text-purple-200 mb-4 text-sm">
-          보고서를 작성하는 과정에서도 AI 원리가 사용되고 있어요!
-        </p>
-        <div className="space-y-2">
-          <AIPrincipleAccordion 
-            step="ai-explanation" 
-            explanation={getAIPrincipleExplanation('ai-explanation', analysisResult)} 
-          />
         </div>
       </div>
 
@@ -407,14 +549,52 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
               </h4>
               <p className="text-purple-100 whitespace-pre-line">{aiFeedback.suggestions || '다른 데이터도 분석해보면 어떨까요?'}</p>
             </div>
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-center gap-4 mt-4">
               <button
                 onClick={handleDownloadPDF}
                 className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition flex items-center gap-2"
               >
-                <span>📄</span> PDF로 다운로드
+                <span>📄</span> 보고서 PDF 다운로드
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 문제풀이 섹션 */}
+      {showQuiz && !quizResults && (
+        <div className="glass-panel rounded-xl p-6 border-l-4 border-yellow-500">
+          <h3 className="text-xl font-bold text-yellow-300 mb-4">📚 문제풀이</h3>
+          <p className="text-purple-200 mb-4 text-sm">
+            AI 원리와 그래프 해석에 대한 문제를 풀어보세요!
+          </p>
+          <Quiz 
+            questions={generateQuestions(analysisResult)} 
+            onComplete={handleQuizComplete}
+            analysisResult={analysisResult}
+          />
+        </div>
+      )}
+
+      {/* 문제풀이 결과 */}
+      {quizResults && (
+        <div className="glass-panel rounded-xl p-6 border-l-4 border-purple-500">
+          <h3 className="text-xl font-bold text-purple-300 mb-4">📝 문제풀이 결과</h3>
+          <div className="text-center mb-6">
+            <div className="text-4xl font-bold text-white mb-2">
+              {quizResults.totalScore}점 / {quizResults.maxScore}점
+            </div>
+            <div className="text-purple-200">
+              정답: {quizResults.correctCount}문제 / {quizResults.totalQuestions}문제
+            </div>
+          </div>
+          <div className="flex justify-center">
+            <button
+              onClick={handleDownloadQuizPDF}
+              className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+            >
+              <span>📄</span> 문제풀이 결과 PDF 다운로드
+            </button>
           </div>
         </div>
       )}

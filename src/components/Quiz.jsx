@@ -148,11 +148,15 @@ const Quiz = ({ questions, onComplete, analysisResult }) => {
     );
   }
 
+  // 문제를 카테고리별로 분류
+  const aiPrincipleQuestions = questions.filter(q => q.type === 'ai-principle');
+  const graphQuestions = questions.filter(q => q.type === 'graph-interpretation');
+
   return (
     <div className="glass-panel rounded-xl p-6 space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-2xl font-bold text-yellow-300 mb-2">📚 그래프 해석 문제</h3>
-        <p className="text-purple-200">초등학교 4학년 수준의 문제를 풀어보세요!</p>
+        <h3 className="text-2xl font-bold text-yellow-300 mb-2">📚 문제풀이</h3>
+        <p className="text-purple-200">AI 원리 문제 2개와 그래프 해석 문제 2개를 풀어보세요!</p>
       </div>
       
       {/* AI 원리 설명 */}
@@ -163,9 +167,11 @@ const Quiz = ({ questions, onComplete, analysisResult }) => {
         />
       </div>
 
-      <div className="space-y-6">
-        {questions.map((q, idx) => (
-          <div key={q.id} className="bg-black/40 rounded-lg p-4 border border-purple-500/30">
+      {/* AI 원리 문제 섹션 */}
+      <div className="space-y-4">
+        <h4 className="text-lg font-bold text-blue-300 mb-3">🤖 인공지능 원리 문제 (2문제)</h4>
+        {aiPrincipleQuestions.map((q) => (
+          <div key={q.id} className="bg-blue-900/20 rounded-lg p-4 border border-blue-500/30">
             <div className="font-bold text-white mb-4">
               문제 {q.id}. {q.question}
             </div>
@@ -175,7 +181,41 @@ const Quiz = ({ questions, onComplete, analysisResult }) => {
                   key={optIdx}
                   className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition ${
                     answers[q.id] === optIdx
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800/50 text-gray-200 hover:bg-gray-700/50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={`question-${q.id}`}
+                    value={optIdx}
+                    checked={answers[q.id] === optIdx}
+                    onChange={() => handleAnswer(q.id, optIdx)}
+                    className="w-4 h-4"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 그래프 해석 문제 섹션 */}
+      <div className="space-y-4">
+        <h4 className="text-lg font-bold text-green-300 mb-3">📊 그래프 해석 문제 (2문제)</h4>
+        {graphQuestions.map((q) => (
+          <div key={q.id} className="bg-green-900/20 rounded-lg p-4 border border-green-500/30">
+            <div className="font-bold text-white mb-4">
+              문제 {q.id}. {q.question}
+            </div>
+            <div className="space-y-2">
+              {q.options.map((option, optIdx) => (
+                <label
+                  key={optIdx}
+                  className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition ${
+                    answers[q.id] === optIdx
+                      ? 'bg-green-600 text-white'
                       : 'bg-gray-800/50 text-gray-200 hover:bg-gray-700/50'
                   }`}
                 >
@@ -204,7 +244,10 @@ const Quiz = ({ questions, onComplete, analysisResult }) => {
             : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg'
         }`}
       >
-        제출하기
+        {Object.keys(answers).length < questions.length 
+          ? `제출하기 (${Object.keys(answers).length}/${questions.length} 문제 풀이 완료)`
+          : '제출하기'
+        }
       </button>
     </div>
   );
