@@ -1,621 +1,206 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Icons } from './components/Icons';
-import Lockdown from './components/Lockdown';
-import Intro from './components/Intro';
-import Staging from './components/Staging';
-import Extraction from './components/Extraction';
-import Result from './components/Result';
-import { checkSafety } from './utils/safety';
-import { extractTextFromPDF, extractTextFromExcel, readTextFile, renderPageToCanvas } from './utils/fileReaders';
+import React, { useState } from 'react';
+import { extractTextFromExcel, readTextFile } from './utils/fileReaders';
 import { parseTextToData } from './utils/dataParser';
-import { analyzeSingleDataset, analyzeCorrelation } from './utils/analysis';
-import { 
-  generateChildFriendlyExplanation, 
-  generateCorrelationExplanation,
-  generatePredictionEvidence,
-  generateLongTermPrediction
-} from './utils/explanation';
-import {
-  generateAIExplanation,
-  generateAICorrelationExplanation
-} from './utils/aiService';
-import { generateQuestions, generateCorrelationQuestions } from './utils/questionGenerator';
-import { generateReportPNG } from './utils/reportGenerator';
-import Quiz from './components/Quiz';
-import { APP_SIGNATURE, APP_CONFIG } from './constants';
-import './App.css';
+import { analyzeSingleDataset } from './utils/analysis';
+import ChartRender from './components/ChartRender';
+import { generateAIExplanation } from './utils/aiService';
+import { getAIPrincipleExplanation } from './utils/aiPrincipleExplainer';
 
 const App = () => {
-  const [view, setView] = useState('intro');
-  const [stagedFiles, setStagedFiles] = useState([]);
-  const [analysisResult, setAnalysisResult] = useState(null);
-  const [detectedBadWord, setDetectedBadWord] = useState('');
-  const [readyToStart, setReadyToStart] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
+  const [data, setData] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [aiExplanation, setAiExplanation] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const [activeFile, setActiveFile] = useState(null);
-  const [extractedPoints, setExtractedPoints] = useState([]);
-  const [imgScaleY, setImgScaleY] = useState(100);
-  const canvasRef = useRef(null);
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizResults, setQuizResults] = useState(null);
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-  const resetApp = () => {
-    setStagedFiles([]);
-    setAnalysisResult(null);
-    setDetectedBadWord('');
-    setReadyToStart(false);
-    setView('intro');
-  };
-
-  // KOSIS 데이터 선택 처리
-  const handleKosisDataSelect = (data) => {
-    // KOSIS 데이터를 파일 형식으로 변환하여 stagedFiles에 추가
-    const kosisFile = {
-      id: `kosis-${Date.now()}`,
-      name: data.name || 'KOSIS 통계',
-      type: 'kosis',
-      status: 'ready',
-      data: data,
-    };
-
-    setStagedFiles([kosisFile]);
-    setReadyToStart(true);
-    setView('staging');
-  };
-
-  const processFiles = async (files) => {
-    const newFiles = [];
-    for (let file of files) {
-      const fNameCheck = checkSafety(file.name);
-      if (!fNameCheck.safe) {
-        setDetectedBadWord(fNameCheck.word);
-        setView('lockdown');
+    setLoading(true);
+    try {
+      // 파일 읽기
+      let text = '';
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        text = await extractTextFromExcel(file);
+      } else if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+        text = await readTextFile(file);
+      } else {
+        alert('지원하지 않는 파일 형식입니다. CSV, Excel, TXT 파일을 업로드해주세요.');
+        setLoading(false);
         return;
       }
 
-      let type = 'unknown';
-      let status = 'checking';
-      let error = '';
-      let data = null;
-      const ext = file.name.split('.').pop().toLowerCase();
-
-      // 파일 타입 감지 (확장자 우선)
-      if (ext === 'csv' || file.type === 'text/csv' || file.type === 'application/csv') {
-        type = 'csv';
-      } else if (file.type.startsWith('image/')) {
-        type = 'image';
-      } else if (file.type === 'application/pdf' || ext === 'pdf') {
-        type = 'pdf';
-      } else if (ext === 'xlsx' || ext === 'xls' || file.type.includes('sheet') || file.type.includes('excel')) {
-        type = 'excel';
-      } else if (ext === 'txt' || file.type === 'text/plain') {
-        type = 'text';
-      } else {
-        type = 'text'; // 기본값
+      // 데이터 파싱
+      const parseResult = parseTextToData(text, file.name);
+      if (!parseResult.success) {
+        alert('데이터 파싱 실패: ' + parseResult.msg);
+        setLoading(false);
+        return;
       }
 
-      // 타입별 처리
-      if (type === 'csv' || type === 'text') {
-        // CSV/Text 파일 처리
+      const parsedData = parseResult.data;
+      setData(parsedData);
+
+      // 데이터 분석
+      let dataset = [];
+      if (parsedData.type === 'multi-series') {
+        // 멀티 시리즈는 첫 번째 시리즈로 분석
+        dataset = parsedData.series[0].data.map(p => ({ label: p.year, value: p.value }));
+      } else {
+        dataset = parsedData.data || [];
+      }
+
+      if (dataset.length > 0) {
+        const analysisResult = analyzeSingleDataset(dataset);
+        setAnalysis(analysisResult);
+
+        // AI 설명 생성
         try {
-          const text = await readTextFile(file);
-          const parseRes = parseTextToData(text, file.name);
-          if (parseRes.success) {
-            status = 'ready';
-            data = parseRes.data;
-          } else if (parseRes.errorType === 'safety') {
-            setDetectedBadWord(parseRes.word);
-            setView('lockdown');
-            return;
-          } else {
-            status = 'error';
-            error = parseRes.msg || '데이터 파싱 실패';
-          }
-        } catch (err) {
-          console.error('CSV/Text 읽기 오류:', err);
-          status = 'error';
-          error = '파일 읽기 실패';
-        }
-      } else if (type === 'image') {
-        status = 'needs_extraction';
-      } else if (type === 'pdf') {
-        const text = await extractTextFromPDF(file);
-        const parseRes = parseTextToData(text, file.name);
-        if (parseRes.success) {
-          status = 'ready';
-          data = parseRes.data;
-          data.hasVisual = true;
-        } else if (parseRes.errorType === 'safety') {
-          setDetectedBadWord(parseRes.word);
-          setView('lockdown');
-          return;
-        } else {
-          status = 'needs_extraction';
-          error = '표 인식 실패 (직접 채굴)';
-        }
-      } else if (type === 'excel') {
-        const text = await extractTextFromExcel(file);
-        if (text) {
-          const parseRes = parseTextToData(text, file.name);
-          if (parseRes.success) {
-            status = 'ready';
-            data = parseRes.data;
-          } else if (parseRes.errorType === 'safety') {
-            setDetectedBadWord(parseRes.word);
-            setView('lockdown');
-            return;
-          } else {
-            status = 'error';
-            error = '엑셀 데이터 형식 오류';
-          }
-        } else {
-          status = 'error';
-          error = '엑셀 읽기 실패';
+          const aiExp = await generateAIExplanation({
+            dataName: parsedData.name,
+            slope: analysisResult.slope,
+            avgValue: analysisResult.stats.avgValue,
+            maxValue: analysisResult.stats.maxValue,
+            minValue: analysisResult.stats.minValue,
+            trend: analysisResult.analysis.direction,
+            nextVal: analysisResult.nextVal,
+            dataPoints: dataset.length
+          });
+          setAiExplanation(aiExp);
+        } catch (error) {
+          console.error('AI 설명 생성 실패:', error);
         }
       }
-      newFiles.push({
-        id: Date.now() + Math.random(),
-        fileObj: file,
-        name: file.name,
-        type,
-        status,
-        error,
-        data
-      });
-    }
-    setStagedFiles((prev) => [...prev, ...newFiles]);
-  };
-
-  const handleFileSelect = async (event) => {
-    const files = Array.from(event.target.files);
-    if (files.length === 0) return;
-    await processFiles(files);
-    if (view === 'intro') setView('staging');
-  };
-
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else {
-      setDragActive(false);
+    } catch (error) {
+      console.error('파일 처리 오류:', error);
+      alert('파일 처리 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files?.length > 0) {
-      await processFiles(Array.from(e.dataTransfer.files));
-      if (view === 'intro') setView('staging');
-    }
+  const reset = () => {
+    setData(null);
+    setAnalysis(null);
+    setAiExplanation(null);
   };
-
-  const removeFile = (id) => {
-    setStagedFiles((prev) => prev.filter((f) => f.id !== id));
-  };
-
-  useEffect(() => {
-    const ready = stagedFiles.filter((f) => f.status === 'ready').length;
-    setReadyToStart(stagedFiles.length > 0 && ready === stagedFiles.length);
-    if (stagedFiles.length === 0 && view === 'staging') setView('intro');
-  }, [stagedFiles, view]);
-
-  // Extraction 로직
-  const startExtraction = (fileItem) => {
-    setActiveFile(fileItem);
-    setExtractedPoints([]);
-    setImgScaleY(100);
-    setView('extracting');
-  };
-
-  useEffect(() => {
-    if (view === 'extracting' && activeFile && canvasRef.current) {
-      renderPageToCanvas(activeFile.fileObj, canvasRef.current).then(() => {
-        const ctx = canvasRef.current.getContext('2d');
-        extractedPoints.forEach((p, i) => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
-          ctx.fillStyle = '#fbbf24';
-          ctx.fill();
-          ctx.stroke();
-          if (i > 0) {
-            ctx.beginPath();
-            ctx.moveTo(extractedPoints[i - 1].x, extractedPoints[i - 1].y);
-            ctx.lineTo(p.x, p.y);
-            ctx.strokeStyle = 'rgba(251,191,36,0.5)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
-        });
-      });
-    }
-  }, [view, activeFile, extractedPoints]);
-
-  const handleCanvasClick = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    setExtractedPoints((prev) => [
-      ...prev,
-      {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        invY: canvasRef.current.height - (e.clientY - rect.top)
-      }
-    ]);
-  };
-
-  const finishExtraction = () => {
-    if (extractedPoints.length < 2) {
-      alert('2개 이상의 점을 찍어주세요!');
-      return;
-    }
-    const sorted = [...extractedPoints].sort((a, b) => a.x - b.x);
-    const h = canvasRef.current.height;
-    const finalData = sorted.map((p, i) => ({
-      label: `${i + 1}번째`,
-      value: parseFloat(((p.invY / h) * imgScaleY).toFixed(1)),
-      originalLabel: `${i + 1}`
-    }));
-    setStagedFiles((prev) =>
-      prev.map((f) =>
-        f.id === activeFile.id
-          ? {
-              ...f,
-              status: 'ready',
-              data: {
-                name: f.name + '(Graph)',
-                xLabel: '순서',
-                yLabel: '값',
-                data: finalData
-              }
-            }
-          : f
-      )
-    );
-    setView('staging');
-  };
-
-  // 미래 예측 생성 함수
-  const generateFuturePrediction = (results, correlation, name1, name2) => {
-    const absCorr = Math.abs(correlation);
-    const isPositive = correlation > 0;
-    
-    let prediction = '';
-    
-    if (absCorr > 0.7) {
-      if (isPositive) {
-        prediction = `${name1}이(가) ${results[0].nextVal.toFixed(1)}로 예측되면, ${name2}도(도) ${results[1].nextVal.toFixed(1)} 정도로 함께 변할 가능성이 높아요. 두 데이터가 매우 강한 관계를 가지고 있기 때문이에요.`;
-      } else {
-        prediction = `${name1}이(가) ${results[0].nextVal.toFixed(1)}로 예측되면, ${name2}은(는) ${results[1].nextVal.toFixed(1)} 정도로 반대로 변할 가능성이 높아요. 두 데이터가 반대 관계를 가지고 있기 때문이에요.`;
-      }
-    } else if (absCorr > 0.3) {
-      if (isPositive) {
-        prediction = `${name1}이(가) ${results[0].nextVal.toFixed(1)}로 예측되면, ${name2}도(도) ${results[1].nextVal.toFixed(1)} 정도로 비슷한 방향으로 변할 수 있어요.`;
-      } else {
-        prediction = `${name1}이(가) ${results[0].nextVal.toFixed(1)}로 예측되면, ${name2}은(는) ${results[1].nextVal.toFixed(1)} 정도로 반대 방향으로 변할 수 있어요.`;
-      }
-    } else {
-      prediction = `${name1}과(와) ${name2}은(는) 서로 독립적으로 움직일 가능성이 높아요. 각각 ${results[0].nextVal.toFixed(1)}와(과) ${results[1].nextVal.toFixed(1)} 정도로 예측돼요.`;
-    }
-    
-    return prediction;
-  };
-
-  const performAlchemy = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:307', message: 'performAlchemy start', data: { stagedFilesCount: stagedFiles.length, readyFiles: stagedFiles.filter(f => f.status === 'ready').length, stagedFiles: stagedFiles.map(f => ({ id: f.id, name: f.name, status: f.status, hasData: !!f.data, dataKeys: f.data ? Object.keys(f.data) : [] })) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
-    // #endregion
-    
-    const readyFiles = stagedFiles.filter((f) => f.status === 'ready');
-    const dataList = readyFiles.map((f) => f.data);
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:310', message: 'dataList extracted', data: { dataListLength: dataList.length, dataListStructure: dataList.map((d, i) => ({ index: i, hasData: !!d, dataKeys: d ? Object.keys(d) : [], dataType: d?.type, hasDataField: !!d?.data })) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
-    // #endregion
-    
-    if (dataList.length === 0) return;
-
-    if (dataList.length === 1) {
-      // 단일 데이터셋 분석
-      // dataList[0]은 이미 parseRes.data이므로 .data로 접근할 필요 없음
-      const data = dataList[0];
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:316', message: 'data extracted for analysis', data: { hasData: !!data, dataType: data?.type, dataKeys: data ? Object.keys(data) : [], hasSeries: !!data?.series, hasDataField: !!data?.data }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
-      // #endregion
-      
-      if (!data) {
-        console.error('데이터가 없습니다:', dataList[0]);
-        alert('데이터를 분석할 수 없습니다. 파일을 다시 업로드해주세요.');
-        return;
-      }
-      
-      // 멀티 시리즈 데이터인 경우
-      if (data.type === 'multi-series' && data.series) {
-        // 각 시리즈를 개별적으로 분석
-        const seriesResults = data.series.map(series => {
-          const seriesData = series.data.map(p => ({ label: p.year, value: p.value }));
-          const { slope, nextVal, analysis, stats } = analyzeSingleDataset(seriesData);
-          return {
-            name: series.name,
-            slope,
-            nextVal,
-            analysis,
-            stats,
-            data: seriesData
-          };
-        });
-        
-        setAnalysisResult({
-          type: 'multi-series',
-          title: data.name,
-          xLabel: data.xLabel || '연도',
-          yLabel: data.yLabel || '값',
-          series: data.series,
-          years: data.years,
-          seriesResults: seriesResults,
-          dataset: data.series.flatMap(s => s.data.map(p => ({ 
-            label: `${s.name} (${p.year})`, 
-            value: p.value, 
-            originalLabel: s.name 
-          })))
-        });
-        setView('result');
-        return;
-      }
-      
-      // 일반 단일 데이터셋
-      // parseTextToData가 반환하는 구조: { name, xLabel, yLabel, data: [...] }
-      const d = data.data || data.dataset || [];
-      const { slope, nextVal, analysis, stats } = analyzeSingleDataset(d);
-      
-      // 파일 이름 가져오기 (data.name 또는 stagedFiles의 파일명)
-      const fileName = data.name || readyFiles[0]?.name || '데이터';
-      
-      // 기본 설명 생성 (폴백)
-      const childExplanation = generateChildFriendlyExplanation(
-        d,
-        fileName,
-        slope,
-        stats.avgValue,
-        stats.maxValue,
-        stats.minValue
-      );
-      
-      // 미래 예측 근거 생성
-      const currentValue = d.length > 0 && d[d.length - 1]?.value !== undefined ? d[d.length - 1].value : 0;
-      const predictionEvidence = generatePredictionEvidence(
-        slope,
-        currentValue,
-        nextVal,
-        d.length
-      );
-      
-      // 장기 예측 생성 (10년 후, 20년 후)
-      const longTermPrediction = generateLongTermPrediction(
-        slope,
-        currentValue,
-        d.length,
-        fileName
-      );
-      
-      // AI 설명 시도 (실패해도 기본 설명 사용)
-      let aiExplanation = null;
-      try {
-        aiExplanation = await generateAIExplanation({
-          dataName: fileName,
-          slope,
-          avgValue: stats.avgValue,
-          maxValue: stats.maxValue,
-          minValue: stats.minValue,
-          trend: analysis.direction,
-          nextVal,
-          dataPoints: d.length
-        });
-      } catch (error) {
-        console.log('AI 설명 생성 실패, 기본 설명 사용:', error);
-      }
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:418', message: 'Setting analysisResult', data: { type: 'single', hasNextVal: nextVal !== undefined, nextVal, hasSlope: slope !== undefined, slope, datasetLength: d.length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
-      // #endregion
-      
-      setAnalysisResult({
-        type: 'single',
-        title: fileName,
-        trend: analysis.direction,
-        trendDesc: analysis.desc,
-        nextVal: nextVal !== undefined && !isNaN(nextVal) ? nextVal : null,
-        dataset: d,
-        avgChange: slope !== undefined && !isNaN(slope) ? slope.toFixed(1) : '0.0',
-        stats: stats, // stats 정보 추가
-        childExplanation: aiExplanation || childExplanation,
-        predictionEvidence: aiExplanation ? {
-          ...predictionEvidence,
-          evidence: [
-            ...predictionEvidence.evidence,
-            ...(aiExplanation.predictionEvidence || [])
-          ]
-        } : predictionEvidence,
-        longTermPrediction: longTermPrediction, // 10년 후, 20년 후 예측
-        aiEnhanced: !!aiExplanation
-      });
-    } else {
-      // 복수 데이터셋 분석
-      const results = [];
-      
-      // 각 데이터셋을 개별 분석
-      dataList.forEach((data, idx) => {
-        const { slope, nextVal, analysis, stats } = analyzeSingleDataset(data.data);
-        const childExplanation = generateChildFriendlyExplanation(
-          data.data,
-          data.name,
-          slope,
-          stats.avgValue,
-          stats.maxValue,
-          stats.minValue
-        );
-        const currentValue = data.data[data.data.length - 1].value;
-        const predictionEvidence = generatePredictionEvidence(
-          slope,
-          currentValue,
-          nextVal,
-          data.data.length
-        );
-        
-        results.push({
-          name: data.name,
-          analysis,
-          childExplanation,
-          predictionEvidence,
-          nextVal
-        });
-      });
-      
-      // 상관관계 분석
-      const d1 = dataList[0];
-      const d2 = dataList[1];
-      const min = Math.min(d1.data.length, d2.data.length);
-      const s1 = d1.data.slice(0, min);
-      const s2 = d2.data.slice(0, min);
-      const { correlation, analysis } = analyzeCorrelation(s1, s2);
-      
-      // 기본 상관관계 설명 생성 (폴백)
-      const correlationExplanation = generateCorrelationExplanation(
-        correlation,
-        d1.name,
-        d2.name,
-        s1,
-        s2
-      );
-      
-      // 미래 예측 생성
-      const futurePrediction = generateFuturePrediction(
-        results,
-        correlation,
-        d1.name,
-        d2.name
-      );
-      
-      // AI 상관관계 설명 시도
-      let aiCorrelationExplanation = null;
-      try {
-        const data1Stats = analyzeSingleDataset(s1).stats;
-        const data2Stats = analyzeSingleDataset(s2).stats;
-        
-        aiCorrelationExplanation = await generateAICorrelationExplanation({
-          data1Name: d1.name,
-          data2Name: d2.name,
-          correlation,
-          data1Stats: {
-            avgValue: data1Stats.avgValue,
-            maxValue: data1Stats.maxValue,
-            minValue: data1Stats.minValue
-          },
-          data2Stats: {
-            avgValue: data2Stats.avgValue,
-            maxValue: data2Stats.maxValue,
-            minValue: data2Stats.minValue
-          },
-          realWorldExample: correlationExplanation.realWorldExample
-        });
-      } catch (error) {
-        console.log('AI 상관관계 설명 생성 실패, 기본 설명 사용:', error);
-      }
-      
-      setAnalysisResult({
-        type: 'multi',
-        file1: d1.name,
-        file2: d2.name,
-        correlation,
-        corrTitle: analysis.title,
-        corrDetail: analysis.detail,
-        dataset1: s1,
-        dataset2: s2,
-        individualResults: results,
-        correlationExplanation: aiCorrelationExplanation || correlationExplanation,
-        futurePrediction: aiCorrelationExplanation?.futurePrediction || futurePrediction,
-        futurePredictionEvidence: aiCorrelationExplanation?.futurePredictionEvidence || [
-          `${d1.name}의 예측값: ${results[0].nextVal.toFixed(1)}`,
-          `${d2.name}의 예측값: ${results[1].nextVal.toFixed(1)}`,
-          `두 데이터의 상관계수: ${correlation.toFixed(2)}`,
-          (aiCorrelationExplanation || correlationExplanation).realWorldExample
-        ],
-        aiEnhanced: !!aiCorrelationExplanation
-      });
-    }
-    setView('result');
-  };
-  if (view === 'lockdown') {
-    return <Lockdown detectedBadWord={detectedBadWord} onReset={resetApp} />;
-  }
 
   return (
-    <div className="min-h-screen alchemy-gradient flex flex-col items-center p-4">
-      <header className="w-full max-w-4xl flex justify-between items-center py-6 mb-8 z-10 text-white">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={resetApp}>
-          <span className="text-2xl">🔮</span>
-          <h1 className="text-2xl font-bold neon-text">
-            {APP_CONFIG.title}
-          </h1>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+      <div className="max-w-6xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">🔮 데이터 분석 도구</h1>
+          <p className="text-purple-200">데이터를 업로드하면 자동으로 분석하고 시각화합니다</p>
+        </header>
 
-      <main className="w-full max-w-4xl z-10 min-h-[600px]">
-        {view === 'intro' && (
-          <Intro
-            onKosisDataSelect={handleKosisDataSelect}
-            onFileSelect={handleFileSelect}
-            onDrag={handleDrag}
-            onDrop={handleDrop}
-            dragActive={dragActive}
-          />
-        )}
+        {!data ? (
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 text-center">
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls,.txt"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="file-input"
+            />
+            <label
+              htmlFor="file-input"
+              className="cursor-pointer inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition"
+            >
+              {loading ? '처리 중...' : '📁 파일 업로드'}
+            </label>
+            <p className="text-purple-200 mt-4">CSV, Excel, TXT 파일을 지원합니다</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* 그래프 */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+              <h2 className="text-2xl font-bold text-white mb-4">{data.name}</h2>
+              <div id="chart" style={{ width: '100%', height: '400px' }}></div>
+              <ChartRender
+                data={{
+                  type: data.type || 'single',
+                  dataset: data.type === 'multi-series' 
+                    ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                    : (data.data || []),
+                  title: data.name,
+                  xLabel: data.xLabel || '항목',
+                  yLabel: data.yLabel || '값',
+                  series: data.series,
+                  years: data.years
+                }}
+                chartType="line"
+                chartDivId="chart"
+              />
+            </div>
 
-        {view === 'staging' && (
-          <Staging
-            stagedFiles={stagedFiles}
-            onFileSelect={handleFileSelect}
-            onRemoveFile={removeFile}
-            onStartExtraction={startExtraction}
-            onPerformAlchemy={performAlchemy}
-            readyToStart={readyToStart}
-            dragActive={dragActive}
-            onDrag={handleDrag}
-            onDrop={handleDrop}
-            onReset={resetApp}
-          />
-        )}
+            {/* 분석 결과 */}
+            {analysis && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">📊 분석 결과</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
+                  <div>
+                    <p className="text-purple-200 text-sm">트렌드</p>
+                    <p className="text-xl font-bold">{analysis.analysis.direction}</p>
+                  </div>
+                  <div>
+                    <p className="text-purple-200 text-sm">평균값</p>
+                    <p className="text-xl font-bold">{analysis.stats.avgValue.toFixed(1)}</p>
+                  </div>
+                  <div>
+                    <p className="text-purple-200 text-sm">최대값</p>
+                    <p className="text-xl font-bold">{analysis.stats.maxValue.toFixed(1)}</p>
+                  </div>
+                  <div>
+                    <p className="text-purple-200 text-sm">예측값</p>
+                    <p className="text-xl font-bold">{analysis.nextVal !== undefined && !isNaN(analysis.nextVal) ? analysis.nextVal.toFixed(1) : 'N/A'}</p>
+                  </div>
+                </div>
+                <p className="text-purple-100 mt-4">{analysis.analysis.desc}</p>
+              </div>
+            )}
 
-        {view === 'extracting' && (
-          <Extraction
-            activeFile={activeFile}
-            extractedPoints={extractedPoints}
-            imgScaleY={imgScaleY}
-            onImgScaleYChange={setImgScaleY}
-            onCanvasClick={handleCanvasClick}
-            onResetPoints={() => setExtractedPoints([])}
-            onFinishExtraction={finishExtraction}
-            canvasRef={canvasRef}
-          />
-        )}
+            {/* AI 설명 */}
+            {aiExplanation && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">🤖 AI 분석</h2>
+                <div className="text-purple-100 space-y-4">
+                  <p>{aiExplanation.summary}</p>
+                  {aiExplanation.analogy && (
+                    <p className="italic text-purple-200">💡 {aiExplanation.analogy}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {view === 'result' && analysisResult && (
-          <Result 
-            analysisResult={analysisResult} 
-            onReset={resetApp}
-            stagedFiles={stagedFiles}
-          />
+            {/* AI 원리 */}
+            {analysis && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">🧠 AI 원리 해석</h2>
+                <div className="text-purple-100 space-y-4">
+                  <div>
+                    <h3 className="font-bold text-yellow-300 mb-2">선형 회귀 (Linear Regression)</h3>
+                    <p>{getAIPrincipleExplanation('prediction', analysis)?.explanation || '데이터의 패턴을 찾아 미래를 예측하는 AI 원리입니다.'}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-yellow-300 mb-2">패턴 인식 (Pattern Recognition)</h3>
+                    <p>데이터에서 반복되는 패턴을 찾아 미래를 예측합니다.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={reset}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition"
+            >
+              🔄 새로 시작
+            </button>
+          </div>
         )}
-      </main>
-      <div className="hidden-sig">{APP_SIGNATURE}</div>
+      </div>
     </div>
   );
 };
 
 export default App;
-
 
