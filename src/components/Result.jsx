@@ -22,6 +22,14 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
   const [showChartExplanation, setShowChartExplanation] = useState(true);
   const [isChartRendering, setIsChartRendering] = useState(false);
   
+  // #region agent log
+  useEffect(() => {
+    if (analysisResult) {
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/components/Result.jsx:27', message: 'Result component render', data: { hasAnalysisResult: !!analysisResult, type: analysisResult?.type, hasNextVal: analysisResult?.nextVal !== undefined, nextVal: analysisResult?.nextVal, hasCorrelation: analysisResult?.correlation !== undefined, correlation: analysisResult?.correlation, hasLongTermPrediction: !!analysisResult?.longTermPrediction }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'F' }) }).catch(() => { });
+    }
+  }, [analysisResult]);
+  // #endregion
+  
   // 동적 예시 생성
   useEffect(() => {
     if (!analysisResult) return;
