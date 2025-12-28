@@ -16,8 +16,12 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
       chartInstanceRef.current = null;
     }
 
-    const canvas = document.getElementById(chartDivId);
+    // canvas 요소를 찾거나 ref를 사용
+    let canvas = canvasRef.current;
     if (!canvas) {
+      canvas = document.getElementById(chartDivId);
+    }
+    if (!canvas || canvas.tagName !== 'CANVAS') {
       console.warn(`Canvas를 찾을 수 없음: ${chartDivId}`);
       if (onRenderingChange) onRenderingChange(false);
       return;

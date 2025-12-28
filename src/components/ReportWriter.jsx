@@ -400,19 +400,19 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
                 <span className="text-purple-300 text-xs animate-pulse">그래프 그리는 중...</span>
               )}
             </div>
-            <div id="report-chart-div" className="w-full h-[300px] bg-black/20 rounded-lg relative">
+            <div className="w-full h-[300px] bg-black/20 rounded-lg relative">
               {isChartRendering && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg z-10">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
                 </div>
               )}
+              <ChartRender 
+                data={analysisResult} 
+                chartType={reportData.selectedChartType}
+                chartDivId="report-chart-div"
+                onRenderingChange={setIsChartRendering}
+              />
             </div>
-            <ChartRender 
-              data={analysisResult} 
-              chartType={reportData.selectedChartType}
-              chartDivId="report-chart-div"
-              onRenderingChange={setIsChartRendering}
-            />
             
             {/* 그래프 읽는 법 힌트 */}
             <div className="mt-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30">
