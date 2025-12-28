@@ -34,6 +34,152 @@ export const parseTextToData = (text, fileName) => {
   fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/utils/dataParser.js:27', message: 'Lines parsed', data: { lineCount: lines.length, firstLines: lines.slice(0, 5) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
   // #endregion
 
+  // HTML 코드의 파싱 로직을 정확히 구현
+  // 1. Find Header Row (Looking for years like 2016, 2017...)
+  let yearRowIndex = -1;
+  let valueRowIndex = -1;
+
+  // 연도가 3개 이상 있는 행을 헤더로 찾기 (HTML 코드와 동일)
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].includes(',')) continue;
+    
+    const parts = [];
+    let current = '';
+    let inQuotes = false;
+    for (let j = 0; j < lines[i].length; j++) {
+      const char = lines[i][j];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        parts.push(current.trim().replace(/^"|"$/g, ''));
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    parts.push(current.trim().replace(/^"|"$/g, ''));
+
+    // Check how many cells look like a year (4 digits) - HTML 코드와 동일
+    const yearMatches = parts.filter(cell => {
+      const str = String(cell).trim();
+      return /^\d{4}$/.test(str); // 정확히 4자리 숫자만 (HTML 코드와 동일)
+    });
+
+    if (yearMatches.length >= 3) { // HTML 코드: 3개 이상
+      yearRowIndex = i;
+      // 2. Find the first non-empty row below this header - HTML 코드와 동일
+      for (let j = i + 1; j < lines.length; j++) {
+        if (!lines[j].includes(',')) continue;
+        
+        const valueParts = [];
+        let valueCurrent = '';
+        let valueInQuotes = false;
+        for (let k = 0; k < lines[j].length; k++) {
+          const char = lines[j][k];
+          if (char === '"') {
+            valueInQuotes = !valueInQuotes;
+          } else if (char === ',' && !valueInQuotes) {
+            valueParts.push(valueCurrent.trim().replace(/^"|"$/g, ''));
+            valueCurrent = '';
+          } else {
+            valueCurrent += char;
+          }
+        }
+        valueParts.push(valueCurrent.trim().replace(/^"|"$/g, ''));
+        
+        // HTML 코드: idx > 0 && !isNaN(parseFloat(cell)) && cell !== ""
+        const hasValues = valueParts.some((cell, idx) => {
+          if (idx === 0) return false; // 첫 번째 컬럼 제외
+          const val = parseFloat(cell.replace(/,/g, '').trim());
+          return !isNaN(val) && cell.trim() !== '';
+        });
+        
+        if (hasValues) {
+          valueRowIndex = j;
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  // HTML 코드의 파싱 로직 적용
+  if (yearRowIndex !== -1 && valueRowIndex !== -1) {
+    // 헤더 행과 값 행 파싱
+    const yearRow = lines[yearRowIndex];
+    const valueRow = lines[valueRowIndex];
+    
+    const yearParts = [];
+    let yearCurrent = '';
+    let yearInQuotes = false;
+    for (let j = 0; j < yearRow.length; j++) {
+      const char = yearRow[j];
+      if (char === '"') {
+        yearInQuotes = !yearInQuotes;
+      } else if (char === ',' && !yearInQuotes) {
+        yearParts.push(yearCurrent.trim().replace(/^"|"$/g, ''));
+        yearCurrent = '';
+      } else {
+        yearCurrent += char;
+      }
+    }
+    yearParts.push(yearCurrent.trim().replace(/^"|"$/g, ''));
+
+    const valueParts = [];
+    let valueCurrent = '';
+    let valueInQuotes = false;
+    for (let j = 0; j < valueRow.length; j++) {
+      const char = valueRow[j];
+      if (char === '"') {
+        valueInQuotes = !valueInQuotes;
+      } else if (char === ',' && !valueInQuotes) {
+        valueParts.push(valueCurrent.trim().replace(/^"|"$/g, ''));
+        valueCurrent = '';
+      } else {
+        valueCurrent += char;
+      }
+    }
+    valueParts.push(valueCurrent.trim().replace(/^"|"$/g, ''));
+
+    const categoryLabel = valueParts[0] || "수치";
+    const labels = [];
+    const values = [];
+
+    // HTML 코드: Extract data starting from index 1
+    for (let i = 1; i < yearParts.length; i++) {
+      const label = String(yearParts[i]).trim();
+      const valStr = String(valueParts[i]).replace(/,/g, '').trim();
+      const val = parseFloat(valStr);
+
+      if (label !== "" && !isNaN(val)) {
+        labels.push(label);
+        values.push(val);
+      }
+    }
+
+    if (labels.length > 0) {
+      // HTML 코드와 동일한 데이터 구조로 변환
+      const dataPoints = labels.map((label, idx) => ({
+        label: label,
+        value: values[idx],
+        originalLabel: categoryLabel,
+        year: /^\d{4}$/.test(label) ? label : null
+      }));
+
+      return {
+        success: true,
+        data: {
+          name: fileName,
+          type: 'single',
+          xLabel: "연도",
+          yLabel: categoryLabel,
+          data: dataPoints
+        }
+      };
+    }
+  }
+
+  // HTML 코드 로직이 실패하면 기존 로직으로 폴백
   // 헤더 찾기 - 엑셀 파일의 경우 가로가 연도, 세로가 지표
   let headerIdx = -1;
   let isTimeSeries = false; // 시계열 데이터 여부
@@ -87,9 +233,6 @@ export const parseTextToData = (text, fileName) => {
         headerIdx = i;
         xLabel = "연도";
         yLabel = "값";
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/utils/dataParser.js:75', message: 'Time series detected (years)', data: { headerIdx: i, yearColumns: yearColumns, parts, firstCol }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
-        // #endregion
         break;
       }
 
@@ -100,9 +243,6 @@ export const parseTextToData = (text, fileName) => {
         // 첫 번째 컬럼이 비어있거나 메타데이터면 "항목"으로 설정, 아니면 첫 컬럼명 사용
         xLabel = (firstCol && !firstCol.includes('단위') && firstCol !== '') ? firstCol : "항목";
         yLabel = "값";
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/utils/dataParser.js:88', message: 'Time series detected (categories)', data: { headerIdx: i, textCategories: textCategories, parts, firstCol, xLabel }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
-        // #endregion
         break;
       }
 
