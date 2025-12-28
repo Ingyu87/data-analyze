@@ -16,7 +16,6 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
   const [reportData, setReportData] = useState({
     title: '',
     dataSelectionReason: '',
-    selectedChartType: 'line',
     chartSelectionReason: '',
     findings: '',
     futurePrediction: ''
