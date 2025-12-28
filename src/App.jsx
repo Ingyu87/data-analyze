@@ -236,9 +236,9 @@ const App = () => {
                         ? data.series[0]?.data || []
                         : (data.data || []);
                       if (dataset.length === 0) return '-';
-                      const maxItem = dataset.reduce((max, item) => 
-                        (item.value || 0) > (max.value || 0) ? item : max
-                      ), dataset[0]);
+                      const maxItem = dataset.reduce((max, item) => {
+                        return (item.value || 0) > (max.value || 0) ? item : max;
+                      }, dataset[0]);
                       return `${maxItem.label || maxItem.year} (${maxItem.value?.toFixed(1) || 0})`;
                     })()}
                   </h3>
@@ -251,9 +251,9 @@ const App = () => {
                         ? data.series[0]?.data || []
                         : (data.data || []);
                       if (dataset.length === 0) return '-';
-                      const minItem = dataset.reduce((min, item) => 
-                        (item.value || Infinity) < (min.value || Infinity) ? item : min
-                      , dataset[0]);
+                      const minItem = dataset.reduce((min, item) => {
+                        return (item.value || Infinity) < (min.value || Infinity) ? item : min;
+                      }, dataset[0]);
                       return `${minItem.label || minItem.year} (${minItem.value?.toFixed(1) || 0})`;
                     })()}
                   </h3>
