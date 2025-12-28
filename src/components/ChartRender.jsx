@@ -180,10 +180,6 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
         // 무시
       }
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/components/ChartRender.jsx:183', message: 'ChartRender data check', data: { hasData: !!data, dataType: data?.type, dataKeys: data ? Object.keys(data) : [] }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
-      // #endregion
-      
       if (!data || !data.type) {
         console.error('ChartRender: data 또는 data.type이 없습니다:', data);
         if (onRenderingChange) onRenderingChange(false);
@@ -200,11 +196,6 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
         const labels = data.dataset.map((d) => d.originalLabel || d.label || '');
         const values = data.dataset.map((d) => {
           const val = d.value;
-          // #region agent log
-          if (val === undefined || val === null || isNaN(val)) {
-            fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/components/ChartRender.jsx:192', message: 'Invalid value in dataset', data: { value: val, dataPoint: d, datasetLength: data.dataset.length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
-          }
-          // #endregion
           return val !== undefined && val !== null && !isNaN(val) ? val : 0;
         });
         
@@ -350,11 +341,6 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
           const seriesValues = years.map(year => {
             const point = series.data.find(p => p.year === year);
             const val = point ? point.value : null;
-            // #region agent log
-            if (val === undefined || (val !== null && isNaN(val))) {
-              fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/components/ChartRender.jsx:350', message: 'Invalid value in multi-series', data: { seriesName: series.name, year, value: val, hasPoint: !!point }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'G' }) }).catch(() => { });
-            }
-            // #endregion
             return (val !== undefined && val !== null && !isNaN(val)) ? val : null;
           });
 
