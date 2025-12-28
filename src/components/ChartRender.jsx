@@ -16,16 +16,27 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
       chartInstanceRef.current = null;
     }
 
-    // canvas 요소를 찾거나 ref를 사용
-    let canvas = canvasRef.current;
-    if (!canvas) {
-      canvas = document.getElementById(chartDivId);
-    }
+    // ref를 우선 사용, 없으면 ID로 찾기
+    const canvas = canvasRef.current || document.getElementById(chartDivId);
     if (!canvas || canvas.tagName !== 'CANVAS') {
-      console.warn(`Canvas를 찾을 수 없음: ${chartDivId}`);
-      if (onRenderingChange) onRenderingChange(false);
-      return;
+      // canvas가 아직 마운트되지 않았을 수 있으므로 잠시 대기
+      const timer = setTimeout(() => {
+        const canvasRetry = canvasRef.current || document.getElementById(chartDivId);
+        if (!canvasRetry || canvasRetry.tagName !== 'CANVAS') {
+          console.warn(`Canvas를 찾을 수 없음: ${chartDivId}`);
+          if (onRenderingChange) onRenderingChange(false);
+          return;
+        }
+        renderChart(canvasRetry);
+      }, 100);
+      return () => clearTimeout(timer);
     }
+
+    renderChart(canvas);
+  }, [data, chartType, chartDivId, onRenderingChange]);
+
+  const renderChart = (canvas) => {
+    if (!canvas || !data || !window.Chart) return;
 
     if (onRenderingChange) onRenderingChange(true);
 
@@ -110,7 +121,7 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
     }
 
     if (onRenderingChange) onRenderingChange(false);
-  }, [data, chartType, chartDivId, onRenderingChange]);
+  };
 
   // 컴포넌트 언마운트 시 차트 정리
   useEffect(() => {
