@@ -613,6 +613,8 @@ const Result = ({ analysisResult, onReset, stagedFiles, data, onDatasetChange })
         <div className="mt-6 w-full">
           <ReportWriter
             analysisResult={analysisResult}
+            data={data}
+            selectedDatasetIndex={selectedDatasetIndex}
             onBack={() => setShowReportWriter(false)}
             stagedFiles={stagedFiles}
           />

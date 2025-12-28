@@ -393,66 +393,67 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
           </div>
           
           {/* 그래프 미리보기 - App.jsx와 동일한 로직 */}
-          <div className="mb-4">
-            <h4 className="text-purple-200 font-semibold text-sm mb-4">📊 그래프 미리보기</h4>
-            {/* 두 그래프를 나란히 표시 (App.jsx와 동일) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* 막대 그래프 */}
-              <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
-                <h3 className="text-xl font-bold mb-6 text-white flex items-center">
-                  <span className="w-2 h-6 bg-blue-500 rounded-full mr-2"></span>
-                  막대 그래프 (Bar Chart)
-                </h3>
-                <div className="chart-container">
-                  <ChartRender
-                    data={{
-                      type: data?.type === 'multi-dataset' ? 'multi-dataset' : 'single',
-                      dataset: data?.type === 'multi-dataset'
-                        ? (data.datasets[selectedDatasetIndex]?.data || [])
-                        : (data?.type === 'multi-series' 
-                          ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
-                          : (data?.data || [])),
-                      title: data?.name,
-                      xLabel: data?.xLabel || '항목',
-                      yLabel: data?.type === 'multi-dataset' 
-                        ? (data.datasets[selectedDatasetIndex]?.name || '값')
-                        : (data?.yLabel || '값')
-                    }}
-                    chartType="bar"
-                    chartDivId="report-chart-bar"
-                    onRenderingChange={setIsChartRendering}
-                  />
+          {data ? (
+            <div className="mb-4">
+              <h4 className="text-purple-200 font-semibold text-sm mb-4">📊 그래프 미리보기</h4>
+              {/* 두 그래프를 나란히 표시 (App.jsx와 동일) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* 막대 그래프 */}
+                <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
+                  <h3 className="text-xl font-bold mb-6 text-white flex items-center">
+                    <span className="w-2 h-6 bg-blue-500 rounded-full mr-2"></span>
+                    막대 그래프 (Bar Chart)
+                  </h3>
+                  <div className="chart-container">
+                    <ChartRender
+                      data={{
+                        type: data.type === 'multi-dataset' ? 'multi-dataset' : 'single',
+                        dataset: data.type === 'multi-dataset'
+                          ? (data.datasets[selectedDatasetIndex]?.data || [])
+                          : (data.type === 'multi-series' 
+                            ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                            : (data.data || [])),
+                        title: data.name,
+                        xLabel: data.xLabel || '항목',
+                        yLabel: data.type === 'multi-dataset' 
+                          ? (data.datasets[selectedDatasetIndex]?.name || '값')
+                          : (data.yLabel || '값')
+                      }}
+                      chartType="bar"
+                      chartDivId="report-chart-bar"
+                      onRenderingChange={setIsChartRendering}
+                    />
+                  </div>
+                </div>
+                
+                {/* 꺾은선 그래프 */}
+                <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
+                  <h3 className="text-xl font-bold mb-6 text-white flex items-center">
+                    <span className="w-2 h-6 bg-emerald-500 rounded-full mr-2"></span>
+                    꺾은선 그래프 (Line Chart)
+                  </h3>
+                  <div className="chart-container">
+                    <ChartRender
+                      data={{
+                        type: data.type === 'multi-dataset' ? 'multi-dataset' : 'single',
+                        dataset: data.type === 'multi-dataset'
+                          ? (data.datasets[selectedDatasetIndex]?.data || [])
+                          : (data.type === 'multi-series' 
+                            ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                            : (data.data || [])),
+                        title: data.name,
+                        xLabel: data.xLabel || '항목',
+                        yLabel: data.type === 'multi-dataset' 
+                          ? (data.datasets[selectedDatasetIndex]?.name || '값')
+                          : (data.yLabel || '값')
+                      }}
+                      chartType="line"
+                      chartDivId="report-chart-line"
+                      onRenderingChange={setIsChartRendering}
+                    />
+                  </div>
                 </div>
               </div>
-              
-              {/* 꺾은선 그래프 */}
-              <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
-                <h3 className="text-xl font-bold mb-6 text-white flex items-center">
-                  <span className="w-2 h-6 bg-emerald-500 rounded-full mr-2"></span>
-                  꺾은선 그래프 (Line Chart)
-                </h3>
-                <div className="chart-container">
-                  <ChartRender
-                    data={{
-                      type: data?.type === 'multi-dataset' ? 'multi-dataset' : 'single',
-                      dataset: data?.type === 'multi-dataset'
-                        ? (data.datasets[selectedDatasetIndex]?.data || [])
-                        : (data?.type === 'multi-series' 
-                          ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
-                          : (data?.data || [])),
-                      title: data?.name,
-                      xLabel: data?.xLabel || '항목',
-                      yLabel: data?.type === 'multi-dataset' 
-                        ? (data.datasets[selectedDatasetIndex]?.name || '값')
-                        : (data?.yLabel || '값')
-                    }}
-                    chartType="line"
-                    chartDivId="report-chart-line"
-                    onRenderingChange={setIsChartRendering}
-                  />
-                </div>
-              </div>
-            </div>
             
             {/* 그래프 읽는 법 힌트 */}
             <div className="mt-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30">
