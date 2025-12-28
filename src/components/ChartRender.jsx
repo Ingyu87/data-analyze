@@ -193,7 +193,11 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
           return;
         }
 
-        const labels = data.dataset.map((d) => d.originalLabel || d.label || '');
+        // 연도를 우선 사용하도록 변경 (HTML 코드와 동일)
+        const labels = data.dataset.map((d) => {
+          // 연도가 있으면 연도 사용, 없으면 label 사용, 마지막으로 originalLabel 사용
+          return d.year || d.label || d.originalLabel || '';
+        });
         const values = data.dataset.map((d) => {
           const val = d.value;
           return val !== undefined && val !== null && !isNaN(val) ? val : 0;

@@ -5,6 +5,54 @@
 import { generateDynamicExample, getFallbackExample } from './aiPrincipleExampleGenerator';
 
 export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicExample = null) => {
+  // 실제 데이터 기반으로 예시 생성
+  const getDataBasedExample = (step, analysisResult) => {
+    if (!analysisResult || !analysisResult.dataset || analysisResult.dataset.length === 0) {
+      return null;
+    }
+
+    const dataset = analysisResult.dataset;
+    const dataName = analysisResult.title || analysisResult.name || '데이터';
+    
+    switch (step) {
+      case 'file-upload':
+        return `${dataName} 파일에서 연도별 데이터(${dataset.length}개)를 찾아서 읽어요.`;
+      
+      case 'data-parsing':
+        const sampleLabels = dataset.slice(0, 3).map(d => d.year || d.label).join(', ');
+        return `${dataName} 데이터에서 "${sampleLabels}" 등의 연도와 값들을 구분해서 정리해요.`;
+      
+      case 'graph-visualization':
+        const sampleValues = dataset.slice(0, 4).map(d => d.value).join(', ');
+        return `${dataName}의 ${sampleValues} 값을 연도별로 그래프에 표시해요.`;
+      
+      case 'trend-analysis':
+        if (analysisResult.avgChange !== undefined) {
+          const change = parseFloat(analysisResult.avgChange);
+          const direction = change > 0 ? '증가' : change < 0 ? '감소' : '유지';
+          return `${dataName} 데이터를 분석해서 평균적으로 ${Math.abs(change).toFixed(1)}씩 ${direction}하는 패턴을 찾아요.`;
+        }
+        return `${dataName} 데이터의 변화 패턴을 분석해요.`;
+      
+      case 'ai-explanation':
+        if (analysisResult.childExplanation?.summary) {
+          return `"${analysisResult.childExplanation.summary.substring(0, 60)}..."와 같이 쉬운 말로 설명해요.`;
+        }
+        return `${dataName} 데이터를 분석해서 초등학생이 이해하기 쉬운 말로 설명해요.`;
+      
+      case 'prediction':
+        if (analysisResult.nextVal !== undefined) {
+          return `${dataName} 데이터를 보고 다음 값이 약 ${Math.round(analysisResult.nextVal)}이 될 것으로 예측해요.`;
+        }
+        return `${dataName} 데이터의 패턴을 보고 미래 값을 예측해요.`;
+      
+      default:
+        return null;
+    }
+  };
+
+  const dataExample = getDataBasedExample(step, analysisResult) || dynamicExample;
+
   const explanations = {
     'file-upload': {
       title: '📁 1단계: 파일 읽기 - 패턴 찾기',
@@ -15,7 +63,7 @@ export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicEx
 
 이렇게 파일에서 데이터를 찾아내는 것을 "패턴 인식(Pattern Recognition)"이라고 해요. 컴퓨터가 반복해서 연습해서 배운 거예요!`,
       icon: '🔍',
-      example: dynamicExample || '엑셀 파일에서 숫자와 글자를 구분해서 읽어요.'
+      example: dataExample || '엑셀 파일에서 숫자와 글자를 구분해서 읽어요.'
     },
     
     'data-parsing': {
@@ -27,7 +75,7 @@ export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicEx
 
 컴퓨터가 파일의 구조(어디가 제목이고, 어디가 데이터인지)를 알아채서, 숫자와 글자를 제대로 구분하는 것을 "구조 인식(Structure Recognition)"이라고 해요. 패턴을 찾아서 데이터를 정리하는 거예요!`,
       icon: '📝',
-      example: dynamicExample || 'CSV 파일의 "이름, 숫자" 형식을 보고 데이터로 바꿔요.'
+      example: dataExample || 'CSV 파일의 "이름, 숫자" 형식을 보고 데이터로 바꿔요.'
     },
     
     'graph-visualization': {
@@ -39,7 +87,7 @@ export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicEx
 
 꺾은선 그래프는 숫자들이 어떻게 변하는지 보여주고, 막대 그래프는 각 숫자가 얼마나 큰지 비교해서 보여줘요. 이렇게 숫자를 그림으로 바꾸는 것을 "데이터 시각화(Data Visualization)"라고 해요!`,
       icon: '📈',
-      example: dynamicExample || getFallbackExample(step, analysisResult) || '10, 15, 20, 25라는 숫자를 받아서 그래프로 그려요.'
+      example: dataExample || getFallbackExample(step, analysisResult) || '10, 15, 20, 25라는 숫자를 받아서 그래프로 그려요.'
     },
     
     'trend-analysis': {
@@ -51,7 +99,7 @@ export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicEx
 
 예를 들어, 1월에 10개, 2월에 12개, 3월에 14개라면, 컴퓨터가 "매달 2개씩 늘어나고 있네!"라고 계산하는 거예요. 이렇게 패턴을 찾는 것을 "선형 회귀(Linear Regression)"라고 해요. 마치 우리가 수학 문제에서 규칙을 찾는 것처럼요!`,
       icon: '🔎',
-      example: dynamicExample || getFallbackExample(step, analysisResult) || '그래프의 점들을 보고 "매달 2씩 증가한다"는 규칙을 찾아요.'
+      example: dataExample || getFallbackExample(step, analysisResult) || '그래프의 점들을 보고 "매달 2씩 증가한다"는 규칙을 찾아요.'
     },
     
     'correlation-analysis': {
@@ -79,7 +127,7 @@ export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicEx
 
 컴퓨터가 많은 책과 글을 읽어서 배운 거예요. 그래서 우리가 이해하기 쉽게 설명할 수 있는 거죠!`,
       icon: '💬',
-      example: dynamicExample || getFallbackExample(step, analysisResult) || '통계 데이터를 받아서 "롤러코스터처럼 빠르게 올라가고 있어요!"라고 설명해요.'
+      example: dataExample || getFallbackExample(step, analysisResult) || '통계 데이터를 받아서 "롤러코스터처럼 빠르게 올라가고 있어요!"라고 설명해요.'
     },
     
     'prediction': {
@@ -93,7 +141,7 @@ export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicEx
 
 10년 후, 20년 후도 같은 방법으로 예측할 수 있어요. 하지만 시간이 길수록 정확도는 낮아질 수 있어요!`,
       icon: '🔮',
-      example: dynamicExample || getFallbackExample(step, analysisResult) || '과거 10개월 데이터를 보고 다음 달 값을 예측해요.'
+      example: dataExample || getFallbackExample(step, analysisResult) || '과거 10개월 데이터를 보고 다음 달 값을 예측해요.'
     },
     
     'question-generation': {
@@ -137,7 +185,7 @@ AI가 "이 데이터는 상승 추세예요!"라고 분석했는데, 우리가 �
 
 이렇게 하면 AI의 실수를 찾아낼 수 있고, 더 정확한 분석을 할 수 있어요!`,
       icon: '🔍',
-      example: dynamicExample || 'AI가 분석한 트렌드를 보고, 그래프를 직접 확인해서 수정해요.'
+      example: dataExample || 'AI가 분석한 트렌드를 보고, 그래프를 직접 확인해서 수정해요.'
     }
   };
   

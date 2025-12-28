@@ -23,6 +23,7 @@ const App = () => {
   const [editedAnalysis, setEditedAnalysis] = useState(null);
   const [originalAnalysis, setOriginalAnalysis] = useState(null);
   const [selectedChartType, setSelectedChartType] = useState('bar'); // 'bar' or 'line'
+  const [editedPrincipleExplanations, setEditedPrincipleExplanations] = useState({});
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
