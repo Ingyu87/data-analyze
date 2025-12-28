@@ -1,8 +1,97 @@
 import { checkSafety } from './safety';
 
 /**
- * 텍스트를 파싱하여 데이터 포인트 배열로 변환합니다.
- * HTML 코드의 파싱 로직을 정확히 구현합니다.
+ * Excel 파일을 2D 배열로 읽어서 파싱합니다 (HTML 코드와 동일한 방식).
+ * @param {Array<Array>} rows - Excel 파일의 2D 배열 데이터
+ * @param {string} fileName - 파일 이름
+ * @returns {{success: boolean, data?: object, msg?: string, errorType?: string, word?: string}}
+ */
+export const parseExcelData = (rows, fileName) => {
+  if (!rows || rows.length === 0) {
+    return { success: false, msg: "데이터가 없습니다" };
+  }
+
+  // HTML 코드의 processRawData 함수와 동일한 로직
+  let yearRowIndex = -1;
+  let valueRowIndex = -1;
+
+  // 1. Find Header Row (Looking for years like 2016, 2017...)
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+    
+    // Check how many cells look like a year (4 digits)
+    const yearMatches = row.filter(cell => {
+      const str = String(cell).trim();
+      return /^\d{4}$/.test(str);
+    });
+
+    if (yearMatches.length >= 3) {
+      yearRowIndex = i;
+      // 2. Find the first non-empty row below this header
+      for (let j = i + 1; j < rows.length; j++) {
+        const hasValues = rows[j].some((cell, idx) => idx > 0 && !isNaN(parseFloat(cell)) && cell !== "");
+        if (hasValues) {
+          valueRowIndex = j;
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  if (yearRowIndex === -1 || valueRowIndex === -1) {
+    return { 
+      success: false, 
+      msg: "데이터 행을 찾을 수 없습니다. 파일 형식이 맞는지 확인해주세요." 
+    };
+  }
+
+  const yearRow = rows[yearRowIndex];
+  const valueRow = rows[valueRowIndex];
+  const categoryLabel = valueRow[0] || "수치";
+
+  const labels = [];
+  const values = [];
+
+  // Extract data starting from index 1
+  for (let i = 1; i < yearRow.length; i++) {
+    const label = String(yearRow[i]).trim();
+    const valStr = String(valueRow[i]).replace(/,/g, '').trim();
+    const val = parseFloat(valStr);
+
+    if (label !== "" && !isNaN(val)) {
+      labels.push(label);
+      values.push(val);
+    }
+  }
+
+  if (labels.length === 0) {
+    return { success: false, msg: "유효한 수치 데이터를 찾지 못했습니다." };
+  }
+
+  // HTML 코드와 동일한 데이터 구조로 변환
+  const dataPoints = labels.map((label, idx) => ({
+    label: label,
+    value: values[idx],
+    originalLabel: categoryLabel,
+    year: /^\d{4}$/.test(label) ? label : null
+  }));
+
+  return {
+    success: true,
+    data: {
+      name: fileName,
+      type: 'single',
+      xLabel: "연도",
+      yLabel: categoryLabel,
+      data: dataPoints
+    }
+  };
+};
+
+/**
+ * 텍스트를 파싱하여 데이터 포인트 배열로 변환합니다 (CSV용).
  * @param {string} text - 파싱할 텍스트
  * @param {string} fileName - 파일 이름
  * @returns {{success: boolean, data?: object, msg?: string, errorType?: string, word?: string}}
@@ -25,7 +114,6 @@ export const parseTextToData = (text, fileName) => {
   const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
   // HTML 코드의 파싱 로직을 정확히 구현
-  // 1. Find Header Row (Looking for years like 2016, 2017...)
   let yearRowIndex = -1;
   let valueRowIndex = -1;
 

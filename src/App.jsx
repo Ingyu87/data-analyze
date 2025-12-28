@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { extractTextFromExcel, readTextFile } from './utils/fileReaders';
-import { parseTextToData } from './utils/dataParser';
+import { parseTextToData, parseExcelData } from './utils/dataParser';
 import { analyzeSingleDataset } from './utils/analysis';
 import ChartRender from './components/ChartRender';
 import { generateAIExplanation } from './utils/aiService';
@@ -30,30 +30,42 @@ const App = () => {
 
     setLoading(true);
     try {
-      // 파일 읽기
-      let text = '';
+      // 파일 읽기 - HTML 코드와 동일한 방식
+      let parseResult = null;
+      
       if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-        text = await extractTextFromExcel(file);
-        if (!text) {
+        // Excel 파일: HTML 코드처럼 2D 배열로 직접 파싱
+        try {
+          const XLSX = await import('xlsx');
+          const arrayBuffer = await file.arrayBuffer();
+          const data = new Uint8Array(arrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // Convert to 2D array (HTML 코드와 동일)
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+          parseResult = parseExcelData(jsonData, file.name);
+        } catch (error) {
+          console.error('Excel 읽기 오류:', error);
           alert('엑셀 파일을 읽을 수 없습니다. 파일이 손상되었거나 비어있을 수 있습니다.');
           setLoading(false);
           return;
         }
       } else if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
-        text = await readTextFile(file);
+        // CSV 파일: 텍스트로 파싱
+        const text = await readTextFile(file);
         if (!text) {
           alert('파일을 읽을 수 없습니다. 파일이 손상되었거나 비어있을 수 있습니다.');
           setLoading(false);
           return;
         }
+        parseResult = parseTextToData(text, file.name);
       } else {
         alert('지원하지 않는 파일 형식입니다. CSV, Excel, TXT 파일을 업로드해주세요.');
         setLoading(false);
         return;
       }
-
-      // 데이터 파싱
-      const parseResult = parseTextToData(text, file.name);
       if (!parseResult.success) {
         let errorMsg = '데이터 파싱 실패: ' + (parseResult.msg || '알 수 없는 오류');
         if (parseResult.errorType === 'safety') {
