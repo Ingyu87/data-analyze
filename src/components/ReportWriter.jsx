@@ -569,7 +569,15 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
             AI 원리와 그래프 해석에 대한 문제를 풀어보세요!
           </p>
           <Quiz 
-            questions={generateQuestions(analysisResult)} 
+            questions={generateQuestions({
+              ...analysisResult,
+              dataset: analysisResult.dataset || [],
+              stats: analysisResult.stats || {},
+              trend: analysisResult.trend || analysisResult.analysis?.direction || '',
+              nextVal: analysisResult.nextVal,
+              avgChange: analysisResult.avgChange,
+              title: analysisResult.title || analysisResult.name || '데이터'
+            })} 
             onComplete={handleQuizComplete}
             analysisResult={analysisResult}
           />
