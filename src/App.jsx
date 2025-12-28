@@ -22,6 +22,7 @@ const App = () => {
   const [isEditingAnalysis, setIsEditingAnalysis] = useState(false);
   const [editedAnalysis, setEditedAnalysis] = useState(null);
   const [originalAnalysis, setOriginalAnalysis] = useState(null);
+  const [selectedChartType, setSelectedChartType] = useState('bar'); // 'bar' or 'line'
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -129,6 +130,7 @@ const App = () => {
     setIsEditingAnalysis(false);
     setEditedAnalysis(null);
     setOriginalAnalysis(null);
+    setSelectedChartType('bar');
   };
 
   return (
@@ -223,9 +225,77 @@ const App = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* 그래프 */}
+            {/* 통계 카드 */}
+            {analysis && data && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
+                  <p className="text-purple-200 text-sm font-medium mb-2">최고 기록 시점</p>
+                  <h3 className="text-2xl font-bold text-blue-400">
+                    {(() => {
+                      const dataset = data.type === 'multi-series' 
+                        ? data.series[0]?.data || []
+                        : (data.data || []);
+                      if (dataset.length === 0) return '-';
+                      const maxItem = dataset.reduce((max, item) => 
+                        (item.value || 0) > (max.value || 0) ? item : max
+                      ), dataset[0]);
+                      return `${maxItem.label || maxItem.year} (${maxItem.value?.toFixed(1) || 0})`;
+                    })()}
+                  </h3>
+                </div>
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
+                  <p className="text-purple-200 text-sm font-medium mb-2">최저 기록 시점</p>
+                  <h3 className="text-2xl font-bold text-red-400">
+                    {(() => {
+                      const dataset = data.type === 'multi-series' 
+                        ? data.series[0]?.data || []
+                        : (data.data || []);
+                      if (dataset.length === 0) return '-';
+                      const minItem = dataset.reduce((min, item) => 
+                        (item.value || Infinity) < (min.value || Infinity) ? item : min
+                      , dataset[0]);
+                      return `${minItem.label || minItem.year} (${minItem.value?.toFixed(1) || 0})`;
+                    })()}
+                  </h3>
+                </div>
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
+                  <p className="text-purple-200 text-sm font-medium mb-2">평균 수치</p>
+                  <h3 className="text-2xl font-bold text-white">
+                    {analysis.stats.avgValue.toFixed(2)}
+                  </h3>
+                </div>
+              </div>
+            )}
+
+            {/* 그래프 타입 선택 버튼 */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">{data.name}</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-white">{data.name}</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedChartType('bar')}
+                    className={`px-6 py-3 rounded-lg font-semibold transition ${
+                      selectedChartType === 'bar'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'bg-purple-900/50 text-purple-200 hover:bg-purple-800'
+                    }`}
+                  >
+                    📊 막대 그래프
+                  </button>
+                  <button
+                    onClick={() => setSelectedChartType('line')}
+                    className={`px-6 py-3 rounded-lg font-semibold transition ${
+                      selectedChartType === 'line'
+                        ? 'bg-emerald-600 text-white shadow-lg'
+                        : 'bg-purple-900/50 text-purple-200 hover:bg-purple-800'
+                    }`}
+                  >
+                    📈 꺾은선 그래프
+                  </button>
+                </div>
+              </div>
+              
+              {/* 선택된 그래프만 표시 */}
               <div id="chart" style={{ width: '100%', height: '400px' }}></div>
               <ChartRender
                 data={{
@@ -239,10 +309,59 @@ const App = () => {
                   series: data.series,
                   years: data.years
                 }}
-                chartType={data.type === 'multi-series' ? 'line' : 'bar'}
+                chartType={selectedChartType}
                 chartDivId="chart"
               />
             </div>
+
+            {/* 데이터 표 */}
+            {data && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl overflow-hidden border border-purple-500/30">
+                <div className="p-6 border-b border-purple-500/30">
+                  <h2 className="text-xl font-bold text-white">상세 데이터 표</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-purple-900/30">
+                        <th className="px-6 py-4 text-sm font-semibold text-purple-200 border-b border-purple-500/30">구분</th>
+                        <th className="px-6 py-4 text-sm font-semibold text-purple-200 border-b border-purple-500/30">수치</th>
+                        <th className="px-6 py-4 text-sm font-semibold text-purple-200 border-b border-purple-500/30">전기 대비 증감</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-purple-500/20">
+                      {(() => {
+                        const dataset = data.type === 'multi-series' 
+                          ? (data.series[0]?.data || []).map(p => ({ label: p.year, value: p.value }))
+                          : (data.data || []);
+                        return dataset.map((item, idx) => {
+                          const prevValue = idx > 0 ? dataset[idx - 1].value : null;
+                          const diff = prevValue !== null ? item.value - prevValue : null;
+                          const isUp = diff !== null && diff > 0;
+                          const isDown = diff !== null && diff < 0;
+                          
+                          return (
+                            <tr key={idx} className="hover:bg-purple-900/20 transition-colors">
+                              <td className="px-6 py-4 text-sm text-purple-100 font-medium">{item.label || item.year}</td>
+                              <td className="px-6 py-4 text-sm text-white font-bold">{item.value?.toLocaleString() || 0}</td>
+                              <td className="px-6 py-4 text-sm">
+                                {diff !== null ? (
+                                  <span className={`font-bold ${isUp ? 'text-blue-400' : isDown ? 'text-red-400' : 'text-gray-400'}`}>
+                                    {isUp ? '▲' : isDown ? '▼' : '-'} {Math.abs(diff).toFixed(2)}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* 분석 결과 */}
             {analysis && (
