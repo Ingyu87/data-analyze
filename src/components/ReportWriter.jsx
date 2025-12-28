@@ -454,24 +454,29 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
                   </div>
                 </div>
               </div>
-            
-            {/* 그래프 읽는 법 힌트 */}
-            <div className="mt-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30">
-              <p className="text-yellow-200 text-xs font-semibold mb-1">💡 이 그래프에서 알 수 있는 것:</p>
-              {reportData.selectedChartType === 'line' && (
-                <p className="text-purple-200 text-xs">선이 올라가면 숫자가 커지고, 내려가면 작아져요. 시간에 따른 변화를 알 수 있어요!</p>
-              )}
-              {reportData.selectedChartType === 'bar' && (
-                <p className="text-purple-200 text-xs">막대가 길수록 숫자가 커요. 어떤 항목이 가장 큰지 한눈에 비교할 수 있어요!</p>
-              )}
-              {reportData.selectedChartType === 'pie' && (
-                <p className="text-purple-200 text-xs">조각이 클수록 차지하는 비율이 높아요. 전체 중에서 각 부분이 얼마나 되는지 알 수 있어요!</p>
-              )}
-              {reportData.selectedChartType === 'pictograph' && (
-                <p className="text-purple-200 text-xs">그림이 많을수록 숫자가 커요. 그림으로 수량을 쉽게 이해할 수 있어요!</p>
-              )}
+              
+              {/* 그래프 읽는 법 힌트 */}
+              <div className="mt-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30">
+                <p className="text-yellow-200 text-xs font-semibold mb-1">💡 이 그래프에서 알 수 있는 것:</p>
+                {reportData.selectedChartType === 'line' && (
+                  <p className="text-purple-200 text-xs">선이 올라가면 숫자가 커지고, 내려가면 작아져요. 시간에 따른 변화를 알 수 있어요!</p>
+                )}
+                {reportData.selectedChartType === 'bar' && (
+                  <p className="text-purple-200 text-xs">막대가 길수록 숫자가 커요. 어떤 항목이 가장 큰지 한눈에 비교할 수 있어요!</p>
+                )}
+                {reportData.selectedChartType === 'pie' && (
+                  <p className="text-purple-200 text-xs">조각이 클수록 차지하는 비율이 높아요. 전체 중에서 각 부분이 얼마나 되는지 알 수 있어요!</p>
+                )}
+                {reportData.selectedChartType === 'pictograph' && (
+                  <p className="text-purple-200 text-xs">그림이 많을수록 숫자가 커요. 그림으로 수량을 쉽게 이해할 수 있어요!</p>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="mb-4 p-4 bg-yellow-900/20 rounded-lg border border-yellow-500/30">
+              <p className="text-yellow-200 text-sm">⚠️ 그래프 데이터를 불러올 수 없습니다. 데이터 분석을 먼저 완료해주세요.</p>
+            </div>
+          )}
           
           {/* 그래프 선택 이유 */}
           <label className="block text-white font-semibold mb-2 mt-4">
