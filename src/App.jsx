@@ -398,34 +398,42 @@ const App = () => {
                     <thead>
                       <tr className="bg-purple-900/30">
                         <th className="px-6 py-4 text-sm font-semibold text-purple-200 border-b border-purple-500/30">구분</th>
-                        <th className="px-6 py-4 text-sm font-semibold text-purple-200 border-b border-purple-500/30">수치</th>
+                        <th className="px-6 py-4 text-sm font-semibold text-purple-200 border-b border-purple-500/30">
+                          {data.type === 'multi-dataset' 
+                            ? data.datasets[selectedDatasetIndex]?.name || '수치'
+                            : (data.yLabel || '수치')}
+                        </th>
                         <th className="px-6 py-4 text-sm font-semibold text-purple-200 border-b border-purple-500/30">전기 대비 증감</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-purple-500/20">
                       {(() => {
-                        const dataset = data.type === 'multi-series' 
-                          ? (data.series[0]?.data || []).map(p => ({ label: p.year, value: p.value }))
-                          : (data.data || []);
+                        const dataset = data.type === 'multi-dataset'
+                          ? (data.datasets[selectedDatasetIndex]?.data || [])
+                          : (data.type === 'multi-series' 
+                            ? (data.series[0]?.data || []).map(p => ({ label: p.year, value: p.value }))
+                            : (data.data || []));
                         return dataset.map((item, idx) => {
-                          const prevValue = idx > 0 ? dataset[idx - 1].value : null;
-                          const diff = prevValue !== null ? item.value - prevValue : null;
-                          const isUp = diff !== null && diff > 0;
-                          const isDown = diff !== null && diff < 0;
+                          const label = item.year || item.label || '-';
+                          const value = item.value !== null && item.value !== undefined ? item.value : null;
+                          let trendHtml = '-';
+                          
+                          if (idx > 0 && value !== null && dataset[idx - 1]?.value !== null && dataset[idx - 1]?.value !== undefined) {
+                            const prevValue = dataset[idx - 1].value;
+                            const diff = value - prevValue;
+                            const isUp = diff > 0;
+                            const colorClass = isUp ? 'text-green-400' : (diff < 0 ? 'text-red-400' : 'text-gray-400');
+                            const icon = isUp ? '▲' : (diff < 0 ? '▼' : '-');
+                            trendHtml = `<span class="${colorClass} font-bold">${icon} ${Math.abs(diff).toLocaleString()}</span>`;
+                          }
                           
                           return (
                             <tr key={idx} className="hover:bg-purple-900/20 transition-colors">
-                              <td className="px-6 py-4 text-sm text-purple-100 font-medium">{item.label || item.year}</td>
-                              <td className="px-6 py-4 text-sm text-white font-bold">{item.value?.toLocaleString() || 0}</td>
-                              <td className="px-6 py-4 text-sm">
-                                {diff !== null ? (
-                                  <span className={`font-bold ${isUp ? 'text-blue-400' : isDown ? 'text-red-400' : 'text-gray-400'}`}>
-                                    {isUp ? '▲' : isDown ? '▼' : '-'} {Math.abs(diff).toFixed(2)}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
+                              <td className="px-6 py-4 text-sm text-purple-100 font-medium">{label}</td>
+                              <td className="px-6 py-4 text-sm text-white font-bold">
+                                {value !== null ? value.toLocaleString() : '-'}
                               </td>
+                              <td className="px-6 py-4 text-sm" dangerouslySetInnerHTML={{ __html: trendHtml }}></td>
                             </tr>
                           );
                         });
