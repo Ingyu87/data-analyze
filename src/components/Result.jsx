@@ -387,7 +387,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
                 <p className="mb-2">
                   다음 단계에서는 숫자가 약{' '}
                   <span className="text-yellow-300 font-bold text-xl">
-                    {analysisResult.predictionEvidence?.predictedValue || analysisResult.nextVal.toFixed(1)}
+                    {analysisResult.predictionEvidence?.predictedValue || (analysisResult.nextVal !== undefined && !isNaN(analysisResult.nextVal) ? analysisResult.nextVal.toFixed(1) : 'N/A')}
                   </span>
                   정도가 될 거예요!
                 </p>
@@ -456,9 +456,11 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
                 )}
               </div>
               
-              <div className="text-sm text-purple-300 mt-2">
-                (상관계수: {analysisResult.correlation.toFixed(2)})
-              </div>
+              {analysisResult.correlation !== undefined && !isNaN(analysisResult.correlation) && (
+                <div className="text-sm text-purple-300 mt-2">
+                  (상관계수: {analysisResult.correlation.toFixed(2)})
+                </div>
+              )}
               
               {/* 예측 관련 AI 원리 */}
               <div className="mt-4 pt-4 border-t border-green-500/30">
@@ -494,15 +496,19 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
             <div className="space-y-2 text-sm">
               <p>
                 <strong>10년 후:</strong> {analysisResult.longTermPrediction.prediction10Years}
-                <span className="text-yellow-300 font-bold ml-2">
-                  (예상값: {analysisResult.longTermPrediction.value10Years.toFixed(1)})
-                </span>
+                {analysisResult.longTermPrediction.value10Years !== undefined && !isNaN(analysisResult.longTermPrediction.value10Years) && (
+                  <span className="text-yellow-300 font-bold ml-2">
+                    (예상값: {analysisResult.longTermPrediction.value10Years.toFixed(1)})
+                  </span>
+                )}
               </p>
               <p>
                 <strong>20년 후:</strong> {analysisResult.longTermPrediction.prediction20Years}
-                <span className="text-yellow-300 font-bold ml-2">
-                  (예상값: {analysisResult.longTermPrediction.value20Years.toFixed(1)})
-                </span>
+                {analysisResult.longTermPrediction.value20Years !== undefined && !isNaN(analysisResult.longTermPrediction.value20Years) && (
+                  <span className="text-yellow-300 font-bold ml-2">
+                    (예상값: {analysisResult.longTermPrediction.value20Years.toFixed(1)})
+                  </span>
+                )}
               </p>
               {analysisResult.longTermPrediction.reasons && (
                 <div className="mt-2">

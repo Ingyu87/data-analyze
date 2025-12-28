@@ -309,7 +309,8 @@ const App = () => {
     fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:307', message: 'performAlchemy start', data: { stagedFilesCount: stagedFiles.length, readyFiles: stagedFiles.filter(f => f.status === 'ready').length, stagedFiles: stagedFiles.map(f => ({ id: f.id, name: f.name, status: f.status, hasData: !!f.data, dataKeys: f.data ? Object.keys(f.data) : [] })) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
     // #endregion
     
-    const dataList = stagedFiles.filter((f) => f.status === 'ready').map((f) => f.data);
+    const readyFiles = stagedFiles.filter((f) => f.status === 'ready');
+    const dataList = readyFiles.map((f) => f.data);
     
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:310', message: 'dataList extracted', data: { dataListLength: dataList.length, dataListStructure: dataList.map((d, i) => ({ index: i, hasData: !!d, dataKeys: d ? Object.keys(d) : [], dataType: d?.type, hasDataField: !!d?.data })) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
@@ -371,10 +372,13 @@ const App = () => {
       const d = data.data || data.dataset || [];
       const { slope, nextVal, analysis, stats } = analyzeSingleDataset(d);
       
+      // 파일 이름 가져오기 (data.name 또는 stagedFiles의 파일명)
+      const fileName = data.name || readyFiles[0]?.name || '데이터';
+      
       // 기본 설명 생성 (폴백)
       const childExplanation = generateChildFriendlyExplanation(
         d,
-        dataList[0].name,
+        fileName,
         slope,
         stats.avgValue,
         stats.maxValue,
@@ -382,7 +386,7 @@ const App = () => {
       );
       
       // 미래 예측 근거 생성
-      const currentValue = d[d.length - 1].value;
+      const currentValue = d.length > 0 && d[d.length - 1]?.value !== undefined ? d[d.length - 1].value : 0;
       const predictionEvidence = generatePredictionEvidence(
         slope,
         currentValue,
@@ -395,14 +399,14 @@ const App = () => {
         slope,
         currentValue,
         d.length,
-        dataList[0].name
+        fileName
       );
       
       // AI 설명 시도 (실패해도 기본 설명 사용)
       let aiExplanation = null;
       try {
         aiExplanation = await generateAIExplanation({
-          dataName: dataList[0].name,
+          dataName: fileName,
           slope,
           avgValue: stats.avgValue,
           maxValue: stats.maxValue,
@@ -417,7 +421,7 @@ const App = () => {
       
       setAnalysisResult({
         type: 'single',
-        title: dataList[0].name,
+        title: fileName,
         trend: analysis.direction,
         trendDesc: analysis.desc,
         nextVal,
