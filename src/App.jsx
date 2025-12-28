@@ -24,6 +24,7 @@ const App = () => {
   const [originalAnalysis, setOriginalAnalysis] = useState(null);
   const [selectedChartType, setSelectedChartType] = useState('bar'); // 'bar' or 'line'
   const [editedPrincipleExplanations, setEditedPrincipleExplanations] = useState({});
+  const [selectedDatasetIndex, setSelectedDatasetIndex] = useState(0);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -86,7 +87,10 @@ const App = () => {
 
       // 데이터 분석
       let dataset = [];
-      if (parsedData.type === 'multi-series') {
+      if (parsedData.type === 'multi-dataset') {
+        // 여러 항목이 있는 경우 첫 번째 항목을 기본으로 선택
+        dataset = parsedData.datasets[0].data || [];
+      } else if (parsedData.type === 'multi-series') {
         // 멀티 시리즈는 첫 번째 시리즈로 분석
         dataset = parsedData.series[0].data.map(p => ({ label: p.year, value: p.value }));
       } else {
@@ -256,6 +260,27 @@ const App = () => {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* 항목 선택 드롭다운 (여러 항목이 있는 경우) */}
+            {data && data.type === 'multi-dataset' && data.datasets && data.datasets.length > 1 && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-white mb-1">분석 항목 선택</h2>
+                    <p className="text-sm text-purple-200">여러 항목이 감지되었습니다. 시각화할 항목을 선택하세요.</p>
+                  </div>
+                  <select 
+                    value={selectedDatasetIndex}
+                    onChange={(e) => handleDatasetChange(Number(e.target.value))}
+                    className="bg-purple-900/50 border border-purple-500/50 text-white text-sm rounded-lg focus:ring-purple-400 focus:border-purple-400 block p-3 min-w-[200px]"
+                  >
+                    {data.datasets.map((ds, idx) => (
+                      <option key={idx} value={idx}>{ds.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
             {/* 통계 카드 */}
             {analysis && data && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

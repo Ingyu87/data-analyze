@@ -10,7 +10,7 @@ import { generateReportPNG } from '../utils/reportGenerator';
 import { getChartTypeInfo, getRecommendedChartType } from '../utils/chartTypeExplainer';
 import Quiz from './Quiz';
 
-const Result = ({ analysisResult, onReset, stagedFiles }) => {
+const Result = ({ analysisResult, onReset, stagedFiles, data, onDatasetChange }) => {
   const { RefreshCw, Download } = Icons;
   const [chartType, setChartType] = useState(() => 
     analysisResult ? getRecommendedChartType(analysisResult) : 'line'
@@ -21,6 +21,7 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
   const [dynamicExamples, setDynamicExamples] = useState({});
   const [showChartExplanation, setShowChartExplanation] = useState(true);
   const [isChartRendering, setIsChartRendering] = useState(false);
+  const [selectedDatasetIndex, setSelectedDatasetIndex] = useState(0);
   
   // 동적 예시 생성
   useEffect(() => {
