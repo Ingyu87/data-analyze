@@ -137,7 +137,7 @@ const App = () => {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
       <div className="max-w-6xl mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">🔮 데이터 분석 도구</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">🤖 인공지능 원리로 익히는 자료와 가능성</h1>
           <p className="text-purple-200">데이터를 업로드하면 자동으로 분석하고 시각화합니다</p>
         </header>
 
