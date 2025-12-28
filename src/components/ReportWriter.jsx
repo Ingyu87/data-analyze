@@ -392,26 +392,42 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
             ))}
           </div>
           
-          {/* 그래프 미리보기 */}
-          <div className="mb-4 p-4 bg-black/30 rounded-lg border border-purple-500/30" ref={chartContainerRef}>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-purple-200 font-semibold text-sm">📊 그래프 미리보기</h4>
-              {isChartRendering && (
-                <span className="text-purple-300 text-xs animate-pulse">그래프 그리는 중...</span>
-              )}
-            </div>
-            <div className="w-full h-[300px] bg-black/20 rounded-lg relative">
-              {isChartRendering && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg z-10">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+          {/* 그래프 미리보기 - App.jsx와 동일한 로직 */}
+          <div className="mb-4">
+            <h4 className="text-purple-200 font-semibold text-sm mb-4">📊 그래프 미리보기</h4>
+            {/* 두 그래프를 나란히 표시 (HTML 코드와 동일) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* 막대 그래프 */}
+              <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
+                <h3 className="text-xl font-bold mb-6 text-white flex items-center">
+                  <span className="w-2 h-6 bg-blue-500 rounded-full mr-2"></span>
+                  막대 그래프 (Bar Chart)
+                </h3>
+                <div className="chart-container">
+                  <ChartRender
+                    data={analysisResult}
+                    chartType="bar"
+                    chartDivId="report-chart-bar"
+                    onRenderingChange={setIsChartRendering}
+                  />
                 </div>
-              )}
-              <ChartRender 
-                data={analysisResult} 
-                chartType={reportData.selectedChartType}
-                chartDivId="report-chart-div"
-                onRenderingChange={setIsChartRendering}
-              />
+              </div>
+              
+              {/* 꺾은선 그래프 */}
+              <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
+                <h3 className="text-xl font-bold mb-6 text-white flex items-center">
+                  <span className="w-2 h-6 bg-emerald-500 rounded-full mr-2"></span>
+                  꺾은선 그래프 (Line Chart)
+                </h3>
+                <div className="chart-container">
+                  <ChartRender
+                    data={analysisResult}
+                    chartType="line"
+                    chartDivId="report-chart-line"
+                    onRenderingChange={setIsChartRendering}
+                  />
+                </div>
+              </div>
             </div>
             
             {/* 그래프 읽는 법 힌트 */}
