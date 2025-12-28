@@ -845,18 +845,24 @@ const App = () => {
               <ReportWriter
                 analysisResult={{
                   type: 'single',
-                  dataset: data.type === 'multi-series' 
-                    ? data.series.flatMap(s => s.data.map(p => ({ 
-                        label: `${s.name} (${p.year})`, 
-                        value: p.value,
-                        originalLabel: s.name
-                      })))
-                    : (data.data || []),
+                  dataset: data.type === 'multi-dataset'
+                    ? (data.datasets[selectedDatasetIndex]?.data || [])
+                    : (data.type === 'multi-series' 
+                      ? data.series.flatMap(s => s.data.map(p => ({ 
+                          label: `${s.name} (${p.year})`, 
+                          value: p.value,
+                          originalLabel: s.name
+                        })))
+                      : (data.data || [])),
                   title: data.name,
                   xLabel: data.xLabel || '항목',
-                  yLabel: data.yLabel || '값',
+                  yLabel: data.type === 'multi-dataset' 
+                    ? (data.datasets[selectedDatasetIndex]?.name || '값')
+                    : (data.yLabel || '값'),
                   ...analysis
                 }}
+                data={data}
+                selectedDatasetIndex={selectedDatasetIndex}
                 onBack={() => setShowReportWriter(false)}
                 stagedFiles={[]}
               />

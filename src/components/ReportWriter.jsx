@@ -9,7 +9,7 @@ import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
 import Quiz from './Quiz';
 import { generateQuestions } from '../utils/questionGenerator';
 
-const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
+const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatasetIndex = 0 }) => {
   const { ArrowLeft } = Icons;
   
   // 모든 hooks를 먼저 선언 (React hooks 규칙)
@@ -395,7 +395,7 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
           {/* 그래프 미리보기 - App.jsx와 동일한 로직 */}
           <div className="mb-4">
             <h4 className="text-purple-200 font-semibold text-sm mb-4">📊 그래프 미리보기</h4>
-            {/* 두 그래프를 나란히 표시 (HTML 코드와 동일) */}
+            {/* 두 그래프를 나란히 표시 (App.jsx와 동일) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* 막대 그래프 */}
               <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
@@ -405,7 +405,13 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
                 </h3>
                 <div className="chart-container">
                   <ChartRender
-                    data={analysisResult}
+                    data={{
+                      type: analysisResult?.type === 'multi-dataset' ? 'multi-dataset' : 'single',
+                      dataset: analysisResult?.dataset || [],
+                      title: analysisResult?.title || analysisResult?.name,
+                      xLabel: analysisResult?.xLabel || '항목',
+                      yLabel: analysisResult?.yLabel || '값'
+                    }}
                     chartType="bar"
                     chartDivId="report-chart-bar"
                     onRenderingChange={setIsChartRendering}
@@ -421,7 +427,13 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
                 </h3>
                 <div className="chart-container">
                   <ChartRender
-                    data={analysisResult}
+                    data={{
+                      type: analysisResult?.type === 'multi-dataset' ? 'multi-dataset' : 'single',
+                      dataset: analysisResult?.dataset || [],
+                      title: analysisResult?.title || analysisResult?.name,
+                      xLabel: analysisResult?.xLabel || '항목',
+                      yLabel: analysisResult?.yLabel || '값'
+                    }}
                     chartType="line"
                     chartDivId="report-chart-line"
                     onRenderingChange={setIsChartRendering}
