@@ -627,43 +627,51 @@ const App = () => {
                 <div className="space-y-2">
                   <AIPrincipleAccordion 
                     step="graph-visualization" 
-                    explanation={getAIPrincipleExplanation('graph-visualization', {
+                    explanation={editedPrincipleExplanations['graph-visualization'] || getAIPrincipleExplanation('graph-visualization', {
                       type: 'single',
                       dataset: data.type === 'multi-series' 
                         ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
                         : (data.data || []),
+                      title: data.name,
                       ...analysis
-                    }, dynamicExamples['graph-visualization'])} 
+                    }, dynamicExamples['graph-visualization'])}
+                    onEdit={(edited) => setEditedPrincipleExplanations({...editedPrincipleExplanations, 'graph-visualization': edited})}
                   />
                   <AIPrincipleAccordion 
                     step="trend-analysis" 
-                    explanation={getAIPrincipleExplanation('trend-analysis', {
+                    explanation={editedPrincipleExplanations['trend-analysis'] || getAIPrincipleExplanation('trend-analysis', {
                       type: 'single',
                       dataset: data.type === 'multi-series' 
                         ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
                         : (data.data || []),
+                      title: data.name,
                       ...analysis
-                    }, dynamicExamples['trend-analysis'])} 
+                    }, dynamicExamples['trend-analysis'])}
+                    onEdit={(edited) => setEditedPrincipleExplanations({...editedPrincipleExplanations, 'trend-analysis': edited})}
                   />
                   <AIPrincipleAccordion 
                     step="ai-explanation" 
-                    explanation={getAIPrincipleExplanation('ai-explanation', {
+                    explanation={editedPrincipleExplanations['ai-explanation'] || getAIPrincipleExplanation('ai-explanation', {
                       type: 'single',
                       dataset: data.type === 'multi-series' 
                         ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
                         : (data.data || []),
+                      title: data.name,
                       ...analysis
-                    }, dynamicExamples['ai-explanation'])} 
+                    }, dynamicExamples['ai-explanation'])}
+                    onEdit={(edited) => setEditedPrincipleExplanations({...editedPrincipleExplanations, 'ai-explanation': edited})}
                   />
                   <AIPrincipleAccordion 
                     step="prediction" 
-                    explanation={getAIPrincipleExplanation('prediction', {
-        type: 'single',
+                    explanation={editedPrincipleExplanations['prediction'] || getAIPrincipleExplanation('prediction', {
+                      type: 'single',
                       dataset: data.type === 'multi-series' 
                         ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
                         : (data.data || []),
+                      title: data.name,
                       ...analysis
-                    }, dynamicExamples['prediction'])} 
+                    }, dynamicExamples['prediction'])}
+                    onEdit={(edited) => setEditedPrincipleExplanations({...editedPrincipleExplanations, 'prediction': edited})}
                   />
                 </div>
                 
