@@ -457,9 +457,11 @@ const Result = ({ analysisResult, onReset, stagedFiles }) => {
               </div>
               
               {analysisResult.correlation !== undefined && !isNaN(analysisResult.correlation) && (
+              {analysisResult.correlation !== undefined && !isNaN(analysisResult.correlation) && (
                 <div className="text-sm text-purple-300 mt-2">
                   (상관계수: {analysisResult.correlation.toFixed(2)})
                 </div>
+              )}
               )}
               
               {/* 예측 관련 AI 원리 */}

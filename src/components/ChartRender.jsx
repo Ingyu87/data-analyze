@@ -198,7 +198,15 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
         }
 
         const labels = data.dataset.map((d) => d.originalLabel || d.label || '');
-        const values = data.dataset.map((d) => d.value);
+        const values = data.dataset.map((d) => {
+          const val = d.value;
+          // #region agent log
+          if (val === undefined || val === null || isNaN(val)) {
+            fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/components/ChartRender.jsx:192', message: 'Invalid value in dataset', data: { value: val, dataPoint: d, datasetLength: data.dataset.length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
+          }
+          // #endregion
+          return val !== undefined && val !== null && !isNaN(val) ? val : 0;
+        });
         
         const traces = [];
         

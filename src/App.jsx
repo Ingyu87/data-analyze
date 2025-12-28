@@ -419,14 +419,18 @@ const App = () => {
         console.log('AI 설명 생성 실패, 기본 설명 사용:', error);
       }
       
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:418', message: 'Setting analysisResult', data: { type: 'single', hasNextVal: nextVal !== undefined, nextVal, hasSlope: slope !== undefined, slope, datasetLength: d.length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
+      // #endregion
+      
       setAnalysisResult({
         type: 'single',
         title: fileName,
         trend: analysis.direction,
         trendDesc: analysis.desc,
-        nextVal,
+        nextVal: nextVal !== undefined && !isNaN(nextVal) ? nextVal : null,
         dataset: d,
-        avgChange: slope.toFixed(1),
+        avgChange: slope !== undefined && !isNaN(slope) ? slope.toFixed(1) : '0.0',
         stats: stats, // stats 정보 추가
         childExplanation: aiExplanation || childExplanation,
         predictionEvidence: aiExplanation ? {
