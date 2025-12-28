@@ -88,8 +88,9 @@ const App = () => {
       // 데이터 분석
       let dataset = [];
       if (parsedData.type === 'multi-dataset') {
-        // 여러 항목이 있는 경우 첫 번째 항목을 기본으로 선택
-        dataset = parsedData.datasets[0].data || [];
+        // HTML 코드와 동일: 항목이 1개여도 multi-dataset 구조
+        setSelectedDatasetIndex(0);
+        dataset = parsedData.datasets[0]?.data || [];
       } else if (parsedData.type === 'multi-series') {
         // 멀티 시리즈는 첫 번째 시리즈로 분석
         dataset = parsedData.series[0].data.map(p => ({ label: p.year, value: p.value }));
@@ -292,7 +293,7 @@ const App = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* 항목 선택 드롭다운 (여러 항목이 있는 경우) */}
+            {/* 항목 선택 드롭다운 (HTML 코드와 동일: 항목이 2개 이상일 때만 표시) */}
             {data && data.type === 'multi-dataset' && data.datasets && data.datasets.length > 1 && (
               <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
