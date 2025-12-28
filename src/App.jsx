@@ -131,21 +131,86 @@ const App = () => {
         </header>
 
         {!data ? (
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 text-center">
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls,.txt"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="file-input"
-            />
-            <label
-              htmlFor="file-input"
-              className="cursor-pointer inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition"
-            >
-              {loading ? '처리 중...' : '📁 파일 업로드'}
-            </label>
-            <p className="text-purple-200 mt-4">CSV, Excel, TXT 파일을 지원합니다</p>
+          <div className="space-y-6">
+            {/* KOSIS 통계놀이터 안내 */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8">
+              <h2 className="text-2xl font-bold text-white mb-4 text-center">📊 KOSIS 통계놀이터에서 데이터 수집하기</h2>
+              
+              <div className="space-y-4 text-purple-100">
+                <div className="bg-blue-900/30 rounded-lg p-4 border border-blue-500/30">
+                  <h3 className="text-lg font-bold text-blue-300 mb-3">1단계: 관심있는 주제 검색</h3>
+                  <p className="mb-2">KOSIS 통계놀이터에서 관심있는 통계 주제를 검색하세요.</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm ml-2">
+                    <li>예: "인구", "출생아", "지진", "육아휴직" 등</li>
+                    <li>검색 결과에서 원하는 통계표를 선택하세요</li>
+                  </ul>
+                </div>
+
+                <div className="bg-green-900/30 rounded-lg p-4 border border-green-500/30">
+                  <h3 className="text-lg font-bold text-green-300 mb-3">2단계: 데이터 다운로드</h3>
+                  <p className="mb-2">선택한 통계표에서 CSV나 Excel 파일을 다운로드하세요.</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm ml-2">
+                    <li>통계표 페이지에서 "다운로드" 버튼을 클릭하세요</li>
+                    <li>CSV 또는 Excel 형식으로 저장하세요</li>
+                  </ul>
+                </div>
+
+                <div className="bg-yellow-900/30 rounded-lg p-4 border border-yellow-500/30">
+                  <h3 className="text-lg font-bold text-yellow-300 mb-3">3단계: 파일 업로드</h3>
+                  <p className="mb-2">다운로드한 파일을 아래 버튼을 클릭하여 업로드하세요.</p>
+                  <p className="text-sm">업로드된 데이터는 자동으로 그래프로 시각화되고 분석됩니다!</p>
+                </div>
+
+                <div className="text-center">
+                  <a
+                    href="https://kosis.kr/edu/index/index.do?sso=ok"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition mb-4"
+                  >
+                    🌐 KOSIS 통계놀이터 열기
+                  </a>
+                </div>
+              </div>
+
+              {/* AI 원리 설명 - 데이터 수집 과정 */}
+              <div className="mt-6 bg-purple-900/30 rounded-lg p-4 border border-purple-500/30">
+                <h3 className="text-lg font-bold text-purple-300 mb-3">🤖 이 과정에서 사용된 AI 원리</h3>
+                <div className="space-y-2">
+                  <AIPrincipleAccordion 
+                    step="file-upload" 
+                    explanation={getAIPrincipleExplanation('file-upload')} 
+                  />
+                  <AIPrincipleAccordion 
+                    step="data-parsing" 
+                    explanation={getAIPrincipleExplanation('data-parsing')} 
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 파일 업로드 섹션 */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 text-center">
+              <h2 className="text-2xl font-bold text-white mb-4">📁 파일 업로드</h2>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls,.txt"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-input"
+              />
+              <label
+                htmlFor="file-input"
+                className="cursor-pointer inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition"
+              >
+                {loading ? '처리 중...' : '📁 파일 업로드'}
+              </label>
+              <p className="text-purple-200 mt-4">CSV, Excel, TXT 파일을 지원합니다</p>
+              <p className="text-purple-300 text-sm mt-2">
+                💡 KOSIS 통계놀이터에서 다운로드한 파일을 업로드하면<br/>
+                엑셀이나 CSV에 있는 그래프를 그대로 재현하고 데이터를 분석해드립니다!
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -209,23 +274,66 @@ const App = () => {
               </div>
             )}
 
-            {/* AI 원리 */}
+            {/* AI 원리 - 전체 과정 설명 */}
             {analysis && (
               <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
                 <h2 className="text-2xl font-bold text-white mb-4">🧠 AI 원리 해석</h2>
+                <p className="text-purple-200 mb-4 text-sm">
+                  이 데이터를 분석하는 과정에서 사용된 AI 원리들을 알아보세요!
+                </p>
                 <div className="space-y-2">
                   <AIPrincipleAccordion 
                     step="graph-visualization" 
-                    explanation={getAIPrincipleExplanation('graph-visualization', analysis, dynamicExamples['graph-visualization'])} 
+                    explanation={getAIPrincipleExplanation('graph-visualization', {
+                      type: 'single',
+                      dataset: data.type === 'multi-series' 
+                        ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
+                        : (data.data || []),
+                      ...analysis
+                    }, dynamicExamples['graph-visualization'])} 
                   />
                   <AIPrincipleAccordion 
                     step="trend-analysis" 
-                    explanation={getAIPrincipleExplanation('trend-analysis', analysis, dynamicExamples['trend-analysis'])} 
+                    explanation={getAIPrincipleExplanation('trend-analysis', {
+                      type: 'single',
+                      dataset: data.type === 'multi-series' 
+                        ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
+                        : (data.data || []),
+                      ...analysis
+                    }, dynamicExamples['trend-analysis'])} 
                   />
                   <AIPrincipleAccordion 
                     step="prediction" 
-                    explanation={getAIPrincipleExplanation('prediction', analysis, dynamicExamples['prediction'])} 
+                    explanation={getAIPrincipleExplanation('prediction', {
+                      type: 'single',
+                      dataset: data.type === 'multi-series' 
+                        ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
+                        : (data.data || []),
+                      ...analysis
+                    }, dynamicExamples['prediction'])} 
                   />
+                </div>
+                
+                {/* 데이터 기반 원리 설명 */}
+                <div className="mt-6 p-4 bg-purple-900/30 rounded-lg border border-purple-500/30">
+                  <h3 className="text-lg font-bold text-purple-300 mb-3">💡 이 데이터로 배우는 AI 원리</h3>
+                  <div className="text-purple-100 space-y-3 text-sm">
+                    <p>
+                      <strong className="text-yellow-300">1. 패턴 인식 (Pattern Recognition):</strong><br/>
+                      이 데이터에서 "{analysis.analysis.direction}" 패턴을 찾아냈어요. 
+                      컴퓨터가 숫자들을 보고 "아, 이건 점점 {analysis.analysis.direction.includes('상승') || analysis.analysis.direction.includes('증가') ? '커지는' : '작아지는'} 패턴이구나!"라고 알아챈 거예요.
+                    </p>
+                    <p>
+                      <strong className="text-yellow-300">2. 선형 회귀 (Linear Regression):</strong><br/>
+                      평균적으로 {Math.abs(analysis.slope).toFixed(1)}씩 변하는 패턴을 찾아서, 
+                      다음 값이 {analysis.nextVal !== undefined && !isNaN(analysis.nextVal) ? analysis.nextVal.toFixed(1) : '예측 중'}이 될 것으로 예측했어요.
+                    </p>
+                    <p>
+                      <strong className="text-yellow-300">3. 데이터 시각화 (Data Visualization):</strong><br/>
+                      숫자들을 그래프로 그려서 눈으로 쉽게 이해할 수 있게 만들었어요. 
+                      그래프를 보면 패턴이 한눈에 보이죠!
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
