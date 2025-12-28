@@ -16,8 +16,8 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
   const [reportData, setReportData] = useState({
     title: '',
     dataSelectionReason: '',
-    chartSelectionReason: '',
     findings: '',
+    questions: '',
     futurePrediction: ''
   });
   const [aiFeedback, setAiFeedback] = useState(null);
@@ -146,6 +146,10 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
     }
     if (!reportData.findings.trim()) {
       alert('그래프를 통해 알 수 있는 사실을 작성해주세요.');
+      return;
+    }
+    if (!reportData.questions.trim()) {
+      alert('그래프를 보고 만든 질문을 작성해주세요.');
       return;
     }
     if (!reportData.futurePrediction.trim()) {
@@ -442,6 +446,30 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
           />
           {warnings.findings && (
             <p className="text-red-400 text-sm mt-1">{warnings.findings}</p>
+          )}
+        </div>
+        
+        {/* 그래프를 보고 질문 만들기 */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            이 그래프를 보고 질문 만들기 <span className="text-red-400">*</span>
+          </label>
+          <div className="mb-2 p-2 bg-purple-900/20 rounded border border-purple-500/30">
+            <p className="text-purple-200 text-xs">💡 힌트: 단답형 질문은 피하고, "왜?", "어떻게?", "무엇이 있을까?" 같은 탐구 질문을 만들어보세요.</p>
+            <p className="text-purple-200 text-xs mt-1">예시: "미세먼지 그래프를 보고 미세먼지를 줄이기 위한 방안은 무엇이 있을까? 왜 줄어들고 있을까?"</p>
+          </div>
+          <textarea
+            value={reportData.questions}
+            onChange={(e) => handleInputChange('questions', e.target.value)}
+            onPaste={handlePaste}
+            onCopy={handleCopy}
+            onCut={handleCut}
+            rows={4}
+            className="w-full px-4 py-2 bg-purple-900/50 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400 resize-none"
+            placeholder="그래프를 보고 궁금한 점이나 탐구하고 싶은 질문을 작성해주세요 (예: 왜 이 데이터가 증가하고 있을까? 어떤 요인이 영향을 미쳤을까?)"
+          />
+          {warnings.questions && (
+            <p className="text-red-400 text-sm mt-1">{warnings.questions}</p>
           )}
         </div>
         
