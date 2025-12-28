@@ -34,8 +34,18 @@ const App = () => {
       let text = '';
       if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
         text = await extractTextFromExcel(file);
+        if (!text) {
+          alert('엑셀 파일을 읽을 수 없습니다. 파일이 손상되었거나 비어있을 수 있습니다.');
+          setLoading(false);
+          return;
+        }
       } else if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
         text = await readTextFile(file);
+        if (!text) {
+          alert('파일을 읽을 수 없습니다. 파일이 손상되었거나 비어있을 수 있습니다.');
+          setLoading(false);
+          return;
+        }
       } else {
         alert('지원하지 않는 파일 형식입니다. CSV, Excel, TXT 파일을 업로드해주세요.');
         setLoading(false);
@@ -45,7 +55,15 @@ const App = () => {
       // 데이터 파싱
       const parseResult = parseTextToData(text, file.name);
       if (!parseResult.success) {
-        alert('데이터 파싱 실패: ' + parseResult.msg);
+        let errorMsg = '데이터 파싱 실패: ' + (parseResult.msg || '알 수 없는 오류');
+        if (parseResult.errorType === 'safety') {
+          errorMsg = `부적절한 내용이 포함되어 있습니다: ${parseResult.word}`;
+        } else if (!parseResult.msg) {
+          errorMsg = '파일 형식을 인식할 수 없습니다.\n\n파일 형식 확인:\n- 첫 번째 행에 연도(2016, 2017 등) 또는 항목명이 있어야 합니다\n- 두 번째 행부터 데이터가 있어야 합니다\n- CSV 형식: "항목명,값1,값2,..." 또는 "항목명,2016,2017,..."\n- Excel 형식: 첫 번째 열은 항목명, 나머지는 연도별 값';
+        }
+        alert(errorMsg);
+        console.error('파싱 실패 상세:', parseResult);
+        console.error('파일 내용 미리보기:', text.substring(0, 500));
         setLoading(false);
         return;
       }

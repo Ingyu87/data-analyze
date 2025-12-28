@@ -581,6 +581,7 @@ export const parseTextToData = (text, fileName) => {
       success: true,
       data: {
         name: fileName,
+        type: 'single',
         xLabel,
         yLabel,
         data: dataPoints
@@ -588,7 +589,17 @@ export const parseTextToData = (text, fileName) => {
     };
   }
 
-  return { success: false, msg: "데이터를 찾지 못했습니다" };
+  // 파싱 실패 시 더 자세한 메시지 제공
+  let errorMsg = "데이터를 찾지 못했습니다.";
+  if (lines.length === 0) {
+    errorMsg = "파일이 비어있거나 읽을 수 없습니다.";
+  } else if (lines.length < 2) {
+    errorMsg = "데이터가 충분하지 않습니다. 최소 2줄 이상의 데이터가 필요합니다.";
+  } else {
+    errorMsg = `데이터 형식을 인식할 수 없습니다.\n\n파일 형식 확인:\n- 첫 번째 행에 연도(2016, 2017 등) 또는 항목명이 있어야 합니다\n- 두 번째 행부터 데이터가 있어야 합니다\n- CSV 형식: "항목명,값1,값2,..." 또는 "항목명,2016,2017,..."\n- Excel 형식: 첫 번째 열은 항목명, 나머지는 연도별 값\n\n파일 내용 미리보기:\n${lines.slice(0, 5).join('\n')}`;
+  }
+
+  return { success: false, msg: errorMsg };
 };
 
 
