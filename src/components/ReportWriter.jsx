@@ -114,9 +114,6 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
   
   const handleInputChange = (field, value) => {
     setReportData(prev => ({ ...prev, [field]: value }));
-    if (field === 'selectedChartType') {
-      return;
-    }
     setTimeout(() => {
       checkAndWarn(field, value);
     }, 800);
@@ -145,10 +142,6 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
     }
     if (!reportData.dataSelectionReason.trim()) {
       alert('데이터 선정 이유를 작성해주세요.');
-      return;
-    }
-    if (!reportData.chartSelectionReason.trim()) {
-      alert('그래프 선택 이유를 작성해주세요.');
       return;
     }
     if (!reportData.findings.trim()) {
@@ -263,14 +256,6 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
     }
   };
   
-  // 그래프 타입 정보
-  const chartTypes = {
-    line: { name: '꺾은선 그래프', icon: '📈', desc: '시간에 따른 변화를 보여줘요' },
-    bar: { name: '막대 그래프', icon: '📊', desc: '항목별 크기를 비교해요' },
-    pie: { name: '원그래프', icon: '🥧', desc: '전체에서 각 부분의 비율을 보여줘요' },
-    pictograph: { name: '그림그래프', icon: '🎨', desc: '그림으로 수량을 표현해요' }
-  };
-  
   // AI 원리 단계 정의
   const aiPrincipleSteps = [
     { key: 'file-upload', title: '1단계: 파일 읽기', required: true },
@@ -368,30 +353,7 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
           )}
         </div>
         
-        {/* 그래프 선택 */}
-        <div>
-          <label className="block text-white font-semibold mb-2">
-            그래프 선택 <span className="text-red-400">*</span>
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-            {Object.entries(chartTypes).map(([type, info]) => (
-              <button
-                key={type}
-                onClick={() => handleInputChange('selectedChartType', type)}
-                className={`px-4 py-3 rounded-lg text-sm font-medium transition flex flex-col items-center justify-center gap-1 ${
-                  reportData.selectedChartType === type
-                    ? 'bg-purple-600 text-white ring-2 ring-purple-400'
-                    : 'bg-purple-900/50 text-purple-200 hover:bg-purple-800'
-                }`}
-              >
-                <span className="text-2xl">{info.icon}</span>
-                <span className="font-bold">{info.name}</span>
-                <span className="text-xs opacity-75">{info.desc}</span>
-              </button>
-            ))}
-          </div>
-          
-          {/* 그래프 미리보기 - App.jsx와 동일한 로직 */}
+        {/* 그래프 미리보기 - App.jsx와 동일한 로직 */}
           {data ? (
             <div className="mb-4">
               <h4 className="text-purple-200 font-semibold text-sm mb-4">📊 그래프 미리보기</h4>
@@ -453,48 +415,12 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
                   </div>
                 </div>
               </div>
-              
-              {/* 그래프 읽는 법 힌트 */}
-              <div className="mt-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30">
-                <p className="text-yellow-200 text-xs font-semibold mb-1">💡 이 그래프에서 알 수 있는 것:</p>
-                {reportData.selectedChartType === 'line' && (
-                  <p className="text-purple-200 text-xs">선이 올라가면 숫자가 커지고, 내려가면 작아져요. 시간에 따른 변화를 알 수 있어요!</p>
-                )}
-                {reportData.selectedChartType === 'bar' && (
-                  <p className="text-purple-200 text-xs">막대가 길수록 숫자가 커요. 어떤 항목이 가장 큰지 한눈에 비교할 수 있어요!</p>
-                )}
-                {reportData.selectedChartType === 'pie' && (
-                  <p className="text-purple-200 text-xs">조각이 클수록 차지하는 비율이 높아요. 전체 중에서 각 부분이 얼마나 되는지 알 수 있어요!</p>
-                )}
-                {reportData.selectedChartType === 'pictograph' && (
-                  <p className="text-purple-200 text-xs">그림이 많을수록 숫자가 커요. 그림으로 수량을 쉽게 이해할 수 있어요!</p>
-                )}
-              </div>
             </div>
           ) : (
             <div className="mb-4 p-4 bg-yellow-900/20 rounded-lg border border-yellow-500/30">
               <p className="text-yellow-200 text-sm">⚠️ 그래프 데이터를 불러올 수 없습니다. 데이터 분석을 먼저 완료해주세요.</p>
             </div>
           )}
-          
-          {/* 그래프 선택 이유 */}
-          <label className="block text-white font-semibold mb-2 mt-4">
-            그래프 선택 이유 <span className="text-red-400">*</span>
-          </label>
-          <textarea
-            value={reportData.chartSelectionReason}
-            onChange={(e) => handleInputChange('chartSelectionReason', e.target.value)}
-            onPaste={handlePaste}
-            onCopy={handleCopy}
-            onCut={handleCut}
-            rows={3}
-            className="w-full px-4 py-2 bg-purple-900/50 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400 resize-none"
-            placeholder="왜 이 그래프를 선택했는지 작성해주세요 (예: 친구들 키를 비교하려고 막대그래프를 선택했어요)"
-          />
-          {warnings.chartSelectionReason && (
-            <p className="text-red-400 text-sm mt-1">{warnings.chartSelectionReason}</p>
-          )}
-        </div>
         
         {/* 그래프를 통해 알 수 있는 사실 */}
         <div>
