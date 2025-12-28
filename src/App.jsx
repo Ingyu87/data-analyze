@@ -19,6 +19,9 @@ const App = () => {
   const [quizResults, setQuizResults] = useState(null);
   const [showReportWriter, setShowReportWriter] = useState(false);
   const [dynamicExamples, setDynamicExamples] = useState({});
+  const [isEditingAnalysis, setIsEditingAnalysis] = useState(false);
+  const [editedAnalysis, setEditedAnalysis] = useState(null);
+  const [originalAnalysis, setOriginalAnalysis] = useState(null);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -61,6 +64,9 @@ const App = () => {
       if (dataset.length > 0) {
         const analysisResult = analyzeSingleDataset(dataset);
         setAnalysis(analysisResult);
+        setOriginalAnalysis(JSON.parse(JSON.stringify(analysisResult))); // 원본 저장
+        setEditedAnalysis(null);
+        setIsEditingAnalysis(false);
 
         // AI 설명 생성
         try {
@@ -120,6 +126,9 @@ const App = () => {
     setQuizResults(null);
     setShowReportWriter(false);
     setDynamicExamples({});
+    setIsEditingAnalysis(false);
+    setEditedAnalysis(null);
+    setOriginalAnalysis(null);
   };
 
   return (
@@ -238,26 +247,207 @@ const App = () => {
             {/* 분석 결과 */}
             {analysis && (
               <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">📊 분석 결과</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
-                  <div>
-                    <p className="text-purple-200 text-sm">트렌드</p>
-                    <p className="text-xl font-bold">{analysis.analysis.direction}</p>
-                  </div>
-                  <div>
-                    <p className="text-purple-200 text-sm">평균값</p>
-                    <p className="text-xl font-bold">{analysis.stats.avgValue.toFixed(1)}</p>
-                  </div>
-                  <div>
-                    <p className="text-purple-200 text-sm">최대값</p>
-                    <p className="text-xl font-bold">{analysis.stats.maxValue.toFixed(1)}</p>
-                  </div>
-                  <div>
-                    <p className="text-purple-200 text-sm">예측값</p>
-                    <p className="text-xl font-bold">{analysis.nextVal !== undefined && !isNaN(analysis.nextVal) ? analysis.nextVal.toFixed(1) : 'N/A'}</p>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold text-white">📊 분석 결과</h2>
+                  <div className="flex gap-2">
+                    {!isEditingAnalysis ? (
+                      <button
+                        onClick={() => {
+                          setIsEditingAnalysis(true);
+                          setEditedAnalysis(JSON.parse(JSON.stringify(analysis)));
+                        }}
+                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition text-sm"
+                      >
+                        ✏️ 수정하기
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            setAnalysis(editedAnalysis);
+                            setIsEditingAnalysis(false);
+                          }}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm"
+                        >
+                          ✅ 저장하기
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsEditingAnalysis(false);
+                            setEditedAnalysis(null);
+                          }}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition text-sm"
+                        >
+                          ❌ 취소
+                        </button>
+                        {originalAnalysis && (
+                          <button
+                            onClick={() => {
+                              setAnalysis(JSON.parse(JSON.stringify(originalAnalysis)));
+                              setEditedAnalysis(JSON.parse(JSON.stringify(originalAnalysis)));
+                            }}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
+                          >
+                            🔄 원본으로 복구
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
-                <p className="text-purple-100 mt-4">{analysis.analysis.desc}</p>
+
+                {!isEditingAnalysis ? (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
+                      <div>
+                        <p className="text-purple-200 text-sm">트렌드</p>
+                        <p className="text-xl font-bold">{analysis.analysis.direction}</p>
+                      </div>
+                      <div>
+                        <p className="text-purple-200 text-sm">평균값</p>
+                        <p className="text-xl font-bold">{analysis.stats.avgValue.toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-purple-200 text-sm">최대값</p>
+                        <p className="text-xl font-bold">{analysis.stats.maxValue.toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-purple-200 text-sm">예측값</p>
+                        <p className="text-xl font-bold">{analysis.nextVal !== undefined && !isNaN(analysis.nextVal) ? analysis.nextVal.toFixed(1) : 'N/A'}</p>
+                      </div>
+                    </div>
+                    <p className="text-purple-100 mt-4">{analysis.analysis.desc}</p>
+                    
+                    {/* 원본과 비교 표시 */}
+                    {originalAnalysis && JSON.stringify(analysis) !== JSON.stringify(originalAnalysis) && (
+                      <div className="mt-4 p-4 bg-blue-900/30 rounded-lg border border-blue-500/30">
+                        <p className="text-blue-200 text-sm font-semibold mb-2">💡 AI 원본 분석과 비교</p>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-purple-200 mb-1">AI 원본:</p>
+                            <p className="text-white">트렌드: {originalAnalysis.analysis.direction}</p>
+                            <p className="text-white">예측값: {originalAnalysis.nextVal !== undefined && !isNaN(originalAnalysis.nextVal) ? originalAnalysis.nextVal.toFixed(1) : 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-yellow-200 mb-1">내가 수정한 결과:</p>
+                            <p className="text-white">트렌드: {analysis.analysis.direction}</p>
+                            <p className="text-white">예측값: {analysis.nextVal !== undefined && !isNaN(analysis.nextVal) ? analysis.nextVal.toFixed(1) : 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-purple-200 text-sm mb-2">트렌드</label>
+                        <select
+                          value={editedAnalysis?.analysis.direction || ''}
+                          onChange={(e) => {
+                            const newAnalysis = { ...editedAnalysis };
+                            newAnalysis.analysis.direction = e.target.value;
+                            // 트렌드에 맞는 설명 자동 업데이트
+                            if (e.target.value.includes('상승')) {
+                              newAnalysis.analysis.desc = '데이터가 점점 증가하는 추세입니다.';
+                            } else if (e.target.value.includes('하강')) {
+                              newAnalysis.analysis.desc = '데이터가 점점 감소하는 추세입니다.';
+                            } else {
+                              newAnalysis.analysis.desc = '데이터가 거의 변화하지 않습니다.';
+                            }
+                            setEditedAnalysis(newAnalysis);
+                          }}
+                          className="w-full px-3 py-2 bg-purple-900/50 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400"
+                        >
+                          <option value="급격한 상승">급격한 상승</option>
+                          <option value="뚜렷한 상승">뚜렷한 상승</option>
+                          <option value="완만한 상승">완만한 상승</option>
+                          <option value="변화 없음">변화 없음</option>
+                          <option value="완만한 하강">완만한 하강</option>
+                          <option value="뚜렷한 하강">뚜렷한 하강</option>
+                          <option value="급격한 하강">급격한 하강</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-purple-200 text-sm mb-2">평균값</label>
+                        <input
+                          type="number"
+                          value={editedAnalysis?.stats.avgValue || ''}
+                          onChange={(e) => {
+                            const newAnalysis = { ...editedAnalysis };
+                            newAnalysis.stats.avgValue = parseFloat(e.target.value) || 0;
+                            setEditedAnalysis(newAnalysis);
+                          }}
+                          className="w-full px-3 py-2 bg-purple-900/50 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400"
+                          step="0.1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-purple-200 text-sm mb-2">최대값</label>
+                        <input
+                          type="number"
+                          value={editedAnalysis?.stats.maxValue || ''}
+                          onChange={(e) => {
+                            const newAnalysis = { ...editedAnalysis };
+                            newAnalysis.stats.maxValue = parseFloat(e.target.value) || 0;
+                            setEditedAnalysis(newAnalysis);
+                          }}
+                          className="w-full px-3 py-2 bg-purple-900/50 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400"
+                          step="0.1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-purple-200 text-sm mb-2">예측값</label>
+                        <input
+                          type="number"
+                          value={editedAnalysis?.nextVal !== undefined && !isNaN(editedAnalysis.nextVal) ? editedAnalysis.nextVal : ''}
+                          onChange={(e) => {
+                            const newAnalysis = { ...editedAnalysis };
+                            newAnalysis.nextVal = parseFloat(e.target.value) || 0;
+                            setEditedAnalysis(newAnalysis);
+                          }}
+                          className="w-full px-3 py-2 bg-purple-900/50 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400"
+                          step="0.1"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-purple-200 text-sm mb-2">설명</label>
+                      <textarea
+                        value={editedAnalysis?.analysis.desc || ''}
+                        onChange={(e) => {
+                          const newAnalysis = { ...editedAnalysis };
+                          newAnalysis.analysis.desc = e.target.value;
+                          setEditedAnalysis(newAnalysis);
+                        }}
+                        rows={3}
+                        className="w-full px-3 py-2 bg-purple-900/50 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400 resize-none"
+                        placeholder="분석 결과에 대한 설명을 작성해주세요"
+                      />
+                    </div>
+                    <div className="p-3 bg-yellow-900/20 rounded-lg border border-yellow-500/30">
+                      <p className="text-yellow-200 text-xs">
+                        💡 AI가 분석한 결과를 보고, 그래프를 직접 확인하면서 자신의 판단으로 수정해보세요!
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* 검증 과정 AI 원리 설명 */}
+                {isEditingAnalysis && (
+                  <div className="mt-4 p-4 bg-blue-900/30 rounded-lg border border-blue-500/30">
+                    <AIPrincipleAccordion 
+                      step="validation" 
+                      explanation={getAIPrincipleExplanation('validation', {
+                        type: 'single',
+                        dataset: data.type === 'multi-series' 
+                          ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
+                          : (data.data || []),
+                        ...analysis
+                      })} 
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -303,9 +493,19 @@ const App = () => {
                     }, dynamicExamples['trend-analysis'])} 
                   />
                   <AIPrincipleAccordion 
+                    step="ai-explanation" 
+                    explanation={getAIPrincipleExplanation('ai-explanation', {
+                      type: 'single',
+                      dataset: data.type === 'multi-series' 
+                        ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
+                        : (data.data || []),
+                      ...analysis
+                    }, dynamicExamples['ai-explanation'])} 
+                  />
+                  <AIPrincipleAccordion 
                     step="prediction" 
                     explanation={getAIPrincipleExplanation('prediction', {
-                      type: 'single',
+        type: 'single',
                       dataset: data.type === 'multi-series' 
                         ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value })))
                         : (data.data || []),
@@ -349,7 +549,7 @@ const App = () => {
                 >
                   문제 풀기 시작하기
                 </button>
-              </div>
+        </div>
             )}
 
             {showQuiz && questions.length > 0 && (

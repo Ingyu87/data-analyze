@@ -122,6 +122,22 @@ export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicEx
 학생이 바로바로 피드백을 받을 수 있어서, 더 빨리 배울 수 있어요!`,
       icon: '✔️',
       example: '학생의 답과 정답을 비교해서 점수를 계산하고 해설을 제공해요.'
+    },
+    
+    'validation': {
+      title: '🔍 10단계: AI 분석 검증하기 - 판단하고 수정하기',
+      principle: '인간-AI 협업 (Human-AI Collaboration)',
+      explanation: `AI가 분석한 결과를 보고, 우리가 직접 판단해서 수정할 수 있는 거예요!
+      
+AI가 "이 데이터는 상승 추세예요!"라고 분석했는데, 우리가 그래프를 보니 "아니야, 내 생각에는 다를 수도 있겠다"고 판단할 수 있어요. 그리고 우리의 판단에 따라 수정할 수 있어요.
+
+마치 친구가 "이 문제 답이 5야!"라고 말했는데, 우리가 다시 계산해보고 "아니야, 내가 계산해보니 6이야!"라고 말하는 것처럼요.
+
+이렇게 AI의 결과를 사람이 검토하고 수정하는 것을 "인간-AI 협업(Human-AI Collaboration)"이라고 해요. AI는 도와주지만, 최종 판단은 우리가 하는 거예요!
+
+이렇게 하면 AI의 실수를 찾아낼 수 있고, 더 정확한 분석을 할 수 있어요!`,
+      icon: '🔍',
+      example: dynamicExample || 'AI가 분석한 트렌드를 보고, 그래프를 직접 확인해서 수정해요.'
     }
   };
   

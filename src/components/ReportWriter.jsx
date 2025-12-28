@@ -4,6 +4,8 @@ import { checkContentSafety } from '../utils/contentSafety';
 import { generateReportFeedback } from '../utils/reportFeedback';
 import { generateReportPDF } from '../utils/reportPDFGenerator';
 import ChartRender from './ChartRender';
+import AIPrincipleAccordion from './AIPrincipleAccordion';
+import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
 
 const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
   const { ArrowLeft } = Icons;
@@ -368,6 +370,20 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles }) => {
         </div>
       </div>
       
+      {/* 보고서 작성 과정의 AI 원리 */}
+      <div className="glass-panel rounded-xl p-6 border-l-4 border-blue-500">
+        <h3 className="text-xl font-bold text-blue-300 mb-4">🧠 보고서 작성에서 사용된 AI 원리</h3>
+        <p className="text-purple-200 mb-4 text-sm">
+          보고서를 작성하는 과정에서도 AI 원리가 사용되고 있어요!
+        </p>
+        <div className="space-y-2">
+          <AIPrincipleAccordion 
+            step="ai-explanation" 
+            explanation={getAIPrincipleExplanation('ai-explanation', analysisResult)} 
+          />
+        </div>
+      </div>
+
       {/* AI 피드백 */}
       {aiFeedback && (
         <div className="glass-panel rounded-xl p-6 border-l-4 border-green-500">
