@@ -154,6 +154,38 @@ const App = () => {
     setShowQuiz(false);
   };
 
+  const handleDatasetChange = (index) => {
+    if (!data || data.type !== 'multi-dataset') return;
+    setSelectedDatasetIndex(index);
+    const selectedDataset = data.datasets[index];
+    const dataset = selectedDataset.data || [];
+    if (dataset.length > 0) {
+      const analysisResult = analyzeSingleDataset(dataset);
+      setAnalysis(analysisResult);
+      setOriginalAnalysis(JSON.parse(JSON.stringify(analysisResult)));
+      setEditedAnalysis(null);
+      setIsEditingAnalysis(false);
+      
+      // AI 설명도 업데이트
+      try {
+        generateAIExplanation({
+          dataName: data.name,
+          slope: analysisResult.slope,
+          avgValue: analysisResult.stats.avgValue,
+          maxValue: analysisResult.stats.maxValue,
+          minValue: analysisResult.stats.minValue,
+          trend: analysisResult.analysis.direction,
+          nextVal: analysisResult.nextVal,
+          dataPoints: dataset.length
+        }).then(aiExp => {
+          setAiExplanation(aiExp);
+        });
+      } catch (error) {
+        console.error('AI 설명 생성 실패:', error);
+      }
+    }
+  };
+
   const reset = () => {
     setData(null);
     setAnalysis(null);
