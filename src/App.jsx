@@ -288,14 +288,17 @@ const App = () => {
                   <p className="text-purple-200 text-sm font-medium mb-2">최고 기록 시점</p>
                   <h3 className="text-2xl font-bold text-blue-400">
                     {(() => {
-                      const dataset = data.type === 'multi-series' 
-                        ? data.series[0]?.data || []
-                        : (data.data || []);
+                      const dataset = data.type === 'multi-dataset'
+                        ? (data.datasets[selectedDatasetIndex]?.data || [])
+                        : (data.type === 'multi-series' 
+                          ? data.series[0]?.data || []
+                          : (data.data || []));
                       if (dataset.length === 0) return '-';
                       const maxItem = dataset.reduce((max, item) => {
                         return (item.value || 0) > (max.value || 0) ? item : max;
                       }, dataset[0]);
-                      return `${maxItem.label || maxItem.year} (${maxItem.value?.toFixed(1) || 0})`;
+                      const maxLabel = maxItem.year || maxItem.label || '-';
+                      return `${maxLabel} (${maxItem.value?.toLocaleString() || 0})`;
                     })()}
                   </h3>
                 </div>
@@ -303,21 +306,24 @@ const App = () => {
                   <p className="text-purple-200 text-sm font-medium mb-2">최저 기록 시점</p>
                   <h3 className="text-2xl font-bold text-red-400">
                     {(() => {
-                      const dataset = data.type === 'multi-series' 
-                        ? data.series[0]?.data || []
-                        : (data.data || []);
+                      const dataset = data.type === 'multi-dataset'
+                        ? (data.datasets[selectedDatasetIndex]?.data || [])
+                        : (data.type === 'multi-series' 
+                          ? data.series[0]?.data || []
+                          : (data.data || []));
                       if (dataset.length === 0) return '-';
                       const minItem = dataset.reduce((min, item) => {
                         return (item.value || Infinity) < (min.value || Infinity) ? item : min;
                       }, dataset[0]);
-                      return `${minItem.label || minItem.year} (${minItem.value?.toFixed(1) || 0})`;
+                      const minLabel = minItem.year || minItem.label || '-';
+                      return `${minLabel} (${minItem.value?.toLocaleString() || 0})`;
                     })()}
                   </h3>
                 </div>
                 <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
                   <p className="text-purple-200 text-sm font-medium mb-2">평균 수치</p>
                   <h3 className="text-2xl font-bold text-white">
-                    {analysis.stats.avgValue.toFixed(2)}
+                    {analysis.stats?.avgValue ? parseFloat(analysis.stats.avgValue).toLocaleString() : '-'}
                   </h3>
                 </div>
               </div>
@@ -336,12 +342,16 @@ const App = () => {
                   <ChartRender
                     data={{
                       type: data.type || 'single',
-                      dataset: data.type === 'multi-series' 
-                        ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
-                        : (data.data || []),
+                      dataset: data.type === 'multi-dataset'
+                        ? (data.datasets[selectedDatasetIndex]?.data || [])
+                        : (data.type === 'multi-series' 
+                          ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                          : (data.data || [])),
                       title: data.name,
                       xLabel: data.xLabel || '항목',
-                      yLabel: data.yLabel || '값',
+                      yLabel: data.type === 'multi-dataset' 
+                        ? (data.datasets[selectedDatasetIndex]?.name || '값')
+                        : (data.yLabel || '값'),
                       series: data.series,
                       years: data.years
                     }}
@@ -357,12 +367,16 @@ const App = () => {
                   <ChartRender
                     data={{
                       type: data.type || 'single',
-                      dataset: data.type === 'multi-series' 
-                        ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
-                        : (data.data || []),
+                      dataset: data.type === 'multi-dataset'
+                        ? (data.datasets[selectedDatasetIndex]?.data || [])
+                        : (data.type === 'multi-series' 
+                          ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                          : (data.data || [])),
                       title: data.name,
                       xLabel: data.xLabel || '항목',
-                      yLabel: data.yLabel || '값',
+                      yLabel: data.type === 'multi-dataset' 
+                        ? (data.datasets[selectedDatasetIndex]?.name || '값')
+                        : (data.yLabel || '값'),
                       series: data.series,
                       years: data.years
                     }}
