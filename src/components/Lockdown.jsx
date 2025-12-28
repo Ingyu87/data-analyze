@@ -23,3 +23,5 @@ const Lockdown = ({ detectedBadWord, onReset }) => {
 export default Lockdown;
 
 
+
+

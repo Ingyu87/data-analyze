@@ -107,3 +107,5 @@ export const getRecommendedChartType = (data) => {
   return 'line';
 };
 
+
+
