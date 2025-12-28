@@ -11,16 +11,13 @@ export const parseExcelData = (rows, fileName) => {
     return { success: false, msg: "데이터가 없습니다" };
   }
 
-  // HTML 코드의 processRawData 함수와 동일한 로직 - 여러 항목 지원
+  // HTML 코드의 processRawData 함수를 정확히 그대로 구현
   let yearRowIndex = -1;
   const datasets = [];
 
-  // 1. Find Header Row (Looking for years like 2016, 2017...)
+  // 1. Find Header Row (Looking for years like 2018, 2019...)
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length === 0) continue;
-    
-    // Check how many cells look like a year (4 digits)
     const yearMatches = row.filter(cell => {
       const str = String(cell).trim();
       return /^\d{4}$/.test(str);
@@ -28,7 +25,7 @@ export const parseExcelData = (rows, fileName) => {
 
     if (yearMatches.length >= 3) {
       yearRowIndex = i;
-      // 2. Collect all rows below this header that have numeric data (HTML 코드와 동일)
+      // 2. Collect all rows below this header that have numeric data
       for (let j = i + 1; j < rows.length; j++) {
         const currentRow = rows[j];
         const name = String(currentRow[0] || "").trim();
@@ -58,7 +55,7 @@ export const parseExcelData = (rows, fileName) => {
   if (yearRowIndex === -1 || datasets.length === 0) {
     return { 
       success: false, 
-      msg: "데이터 행을 찾을 수 없습니다. 파일 형식이 맞는지 확인해주세요." 
+      msg: "데이터 형식을 인식할 수 없습니다. 연도 헤더와 데이터 행이 있는지 확인해 주세요." 
     };
   }
 
@@ -75,44 +72,22 @@ export const parseExcelData = (rows, fileName) => {
     ds.values = ds.values.slice(0, labels.length);
   });
 
-  // 여러 항목이 있는 경우 multi-dataset 구조로 반환
-  if (datasets.length > 1) {
-    return {
-      success: true,
-      data: {
-        name: fileName,
-        type: 'multi-dataset',
-        xLabel: "연도",
-        labels: labels,
-        datasets: datasets.map(ds => ({
-          name: ds.name,
-          data: labels.map((label, idx) => ({
-            label: label,
-            value: ds.values[idx] !== null ? ds.values[idx] : 0,
-            year: /^\d{4}$/.test(label) ? label : null
-          }))
-        }))
-      }
-    };
-  }
-
-  // 단일 항목인 경우 기존 구조 유지
-  const firstDataset = datasets[0];
-  const dataPoints = labels.map((label, idx) => ({
-    label: label,
-    value: firstDataset.values[idx] !== null ? firstDataset.values[idx] : 0,
-    originalLabel: firstDataset.name,
-    year: /^\d{4}$/.test(label) ? label : null
-  }));
-
+  // HTML 코드와 동일하게 multi-dataset 구조로 반환 (항목이 1개여도)
   return {
     success: true,
     data: {
       name: fileName,
-      type: 'single',
+      type: 'multi-dataset',
       xLabel: "연도",
-      yLabel: firstDataset.name,
-      data: dataPoints
+      labels: labels,
+      datasets: datasets.map(ds => ({
+        name: ds.name,
+        data: labels.map((label, idx) => ({
+          label: label,
+          value: ds.values[idx] !== null ? ds.values[idx] : 0,
+          year: /^\d{4}$/.test(label) ? label : null
+        }))
+      }))
     }
   };
 };
