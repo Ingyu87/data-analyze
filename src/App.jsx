@@ -285,51 +285,54 @@ const App = () => {
               </div>
             )}
 
-            {/* 그래프 타입 선택 버튼 */}
+            {/* 그래프 - HTML 코드처럼 막대 그래프와 꺾은선 그래프를 나란히 표시 */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-white">{data.name}</h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSelectedChartType('bar')}
-                    className={`px-6 py-3 rounded-lg font-semibold transition ${
-                      selectedChartType === 'bar'
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'bg-purple-900/50 text-purple-200 hover:bg-purple-800'
-                    }`}
-                  >
-                    📊 막대 그래프
-                  </button>
-                  <button
-                    onClick={() => setSelectedChartType('line')}
-                    className={`px-6 py-3 rounded-lg font-semibold transition ${
-                      selectedChartType === 'line'
-                        ? 'bg-emerald-600 text-white shadow-lg'
-                        : 'bg-purple-900/50 text-purple-200 hover:bg-purple-800'
-                    }`}
-                  >
-                    📈 꺾은선 그래프
-                  </button>
+              <h2 className="text-2xl font-bold text-white mb-4">{data.name}</h2>
+              
+              {/* 두 그래프를 나란히 표시 */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* 막대 그래프 */}
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-2">막대 그래프 (Bar Chart)</h3>
+                  <div id="chart-bar" style={{ width: '100%', height: '400px' }}></div>
+                  <ChartRender
+                    data={{
+                      type: data.type || 'single',
+                      dataset: data.type === 'multi-series' 
+                        ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                        : (data.data || []),
+                      title: data.name,
+                      xLabel: data.xLabel || '항목',
+                      yLabel: data.yLabel || '값',
+                      series: data.series,
+                      years: data.years
+                    }}
+                    chartType="bar"
+                    chartDivId="chart-bar"
+                  />
+                </div>
+                
+                {/* 꺾은선 그래프 */}
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-2">꺾은선 그래프 (Line Chart)</h3>
+                  <div id="chart-line" style={{ width: '100%', height: '400px' }}></div>
+                  <ChartRender
+                    data={{
+                      type: data.type || 'single',
+                      dataset: data.type === 'multi-series' 
+                        ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
+                        : (data.data || []),
+                      title: data.name,
+                      xLabel: data.xLabel || '항목',
+                      yLabel: data.yLabel || '값',
+                      series: data.series,
+                      years: data.years
+                    }}
+                    chartType="line"
+                    chartDivId="chart-line"
+                  />
                 </div>
               </div>
-              
-              {/* 선택된 그래프만 표시 */}
-              <div id="chart" style={{ width: '100%', height: '400px' }}></div>
-              <ChartRender
-                data={{
-                  type: data.type || 'single',
-                  dataset: data.type === 'multi-series' 
-                    ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
-                    : (data.data || []),
-                  title: data.name,
-                  xLabel: data.xLabel || '항목',
-                  yLabel: data.yLabel || '값',
-                  series: data.series,
-                  years: data.years
-                }}
-                chartType={selectedChartType}
-                chartDivId="chart"
-              />
             </div>
 
             {/* 데이터 표 */}
