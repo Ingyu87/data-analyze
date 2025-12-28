@@ -230,7 +230,7 @@ const App = () => {
                   series: data.series,
                   years: data.years
                 }}
-                chartType="line"
+                chartType={data.type === 'multi-series' ? 'line' : 'bar'}
                 chartDivId="chart"
               />
             </div>

@@ -62,6 +62,11 @@ export const parseTextToData = (text, fileName) => {
 
       const firstCol = parts[0].replace(/^"|"$/g, '').trim();
 
+      // "단위:" 포함 행은 메타데이터이므로 헤더로 인식하지 않음
+      if (firstCol.includes('단위')) {
+        continue;
+      }
+
       // 시계열 감지: 두 번째 컬럼부터 패턴 확인
       // 1. 연도(4자리 숫자) 감지
       const yearColumns = parts.slice(1).filter(p => {
