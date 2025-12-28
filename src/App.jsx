@@ -305,12 +305,32 @@ const App = () => {
   };
 
   const performAlchemy = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:307', message: 'performAlchemy start', data: { stagedFilesCount: stagedFiles.length, readyFiles: stagedFiles.filter(f => f.status === 'ready').length, stagedFiles: stagedFiles.map(f => ({ id: f.id, name: f.name, status: f.status, hasData: !!f.data, dataKeys: f.data ? Object.keys(f.data) : [] })) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+    // #endregion
+    
     const dataList = stagedFiles.filter((f) => f.status === 'ready').map((f) => f.data);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:310', message: 'dataList extracted', data: { dataListLength: dataList.length, dataListStructure: dataList.map((d, i) => ({ index: i, hasData: !!d, dataKeys: d ? Object.keys(d) : [], dataType: d?.type, hasDataField: !!d?.data })) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+    // #endregion
+    
     if (dataList.length === 0) return;
 
     if (dataList.length === 1) {
       // 단일 데이터셋 분석
-      const data = dataList[0].data;
+      // dataList[0]은 이미 parseRes.data이므로 .data로 접근할 필요 없음
+      const data = dataList[0];
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/App.jsx:316', message: 'data extracted for analysis', data: { hasData: !!data, dataType: data?.type, dataKeys: data ? Object.keys(data) : [], hasSeries: !!data?.series, hasDataField: !!data?.data }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
+      // #endregion
+      
+      if (!data) {
+        console.error('데이터가 없습니다:', dataList[0]);
+        alert('데이터를 분석할 수 없습니다. 파일을 다시 업로드해주세요.');
+        return;
+      }
       
       // 멀티 시리즈 데이터인 경우
       if (data.type === 'multi-series' && data.series) {
@@ -347,7 +367,8 @@ const App = () => {
       }
       
       // 일반 단일 데이터셋
-      const d = data.data || data;
+      // parseTextToData가 반환하는 구조: { name, xLabel, yLabel, data: [...] }
+      const d = data.data || data.dataset || [];
       const { slope, nextVal, analysis, stats } = analyzeSingleDataset(d);
       
       // 기본 설명 생성 (폴백)

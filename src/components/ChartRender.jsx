@@ -180,6 +180,16 @@ const ChartRender = ({ data, chartType = 'line', chartDivId = 'chart-div', onRen
         // 무시
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/dc518251-d0df-4a77-b14b-c8d0a811e39f', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'src/components/ChartRender.jsx:183', message: 'ChartRender data check', data: { hasData: !!data, dataType: data?.type, dataKeys: data ? Object.keys(data) : [] }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
+      // #endregion
+      
+      if (!data || !data.type) {
+        console.error('ChartRender: data 또는 data.type이 없습니다:', data);
+        if (onRenderingChange) onRenderingChange(false);
+        return;
+      }
+      
       if (data.type === 'single') {
         if (!data.dataset || data.dataset.length === 0) {
           console.warn('단일 차트용 데이터셋 없음');
