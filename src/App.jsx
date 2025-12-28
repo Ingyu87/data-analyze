@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { extractTextFromExcel, readTextFile } from './utils/fileReaders';
 import { parseTextToData } from './utils/dataParser';
 import { analyzeSingleDataset } from './utils/analysis';
 import ChartRender from './components/ChartRender';
 import { generateAIExplanation } from './utils/aiService';
 import { getAIPrincipleExplanation } from './utils/aiPrincipleExplainer';
+import AIPrincipleAccordion from './components/AIPrincipleAccordion';
+import Quiz from './components/Quiz';
+import ReportWriter from './components/ReportWriter';
+import { generateQuestions } from './utils/questionGenerator';
 
 const App = () => {
   const [data, setData] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [aiExplanation, setAiExplanation] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizResults, setQuizResults] = useState(null);
+  const [showReportWriter, setShowReportWriter] = useState(false);
+  const [dynamicExamples, setDynamicExamples] = useState({});
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -79,10 +87,39 @@ const App = () => {
     }
   };
 
+  // 문제 생성
+  const questions = useMemo(() => {
+    if (!analysis || !data) return [];
+    const analysisResult = {
+      type: 'single',
+      dataset: data.type === 'multi-series' 
+        ? data.series.flatMap(s => s.data.map(p => ({ 
+            label: `${s.name} (${p.year})`, 
+            value: p.value,
+            originalLabel: s.name
+          })))
+        : (data.data || []),
+      title: data.name,
+      xLabel: data.xLabel || '항목',
+      yLabel: data.yLabel || '값',
+      ...analysis
+    };
+    return generateQuestions(analysisResult);
+  }, [analysis, data]);
+
+  const handleQuizComplete = (results) => {
+    setQuizResults(results);
+    setShowQuiz(false);
+  };
+
   const reset = () => {
     setData(null);
     setAnalysis(null);
     setAiExplanation(null);
+    setShowQuiz(false);
+    setQuizResults(null);
+    setShowReportWriter(false);
+    setDynamicExamples({});
   };
 
   return (
@@ -176,17 +213,91 @@ const App = () => {
             {analysis && (
               <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
                 <h2 className="text-2xl font-bold text-white mb-4">🧠 AI 원리 해석</h2>
-                <div className="text-purple-100 space-y-4">
-                  <div>
-                    <h3 className="font-bold text-yellow-300 mb-2">선형 회귀 (Linear Regression)</h3>
-                    <p>{getAIPrincipleExplanation('prediction', analysis)?.explanation || '데이터의 패턴을 찾아 미래를 예측하는 AI 원리입니다.'}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-yellow-300 mb-2">패턴 인식 (Pattern Recognition)</h3>
-                    <p>데이터에서 반복되는 패턴을 찾아 미래를 예측합니다.</p>
-                  </div>
+                <div className="space-y-2">
+                  <AIPrincipleAccordion 
+                    step="graph-visualization" 
+                    explanation={getAIPrincipleExplanation('graph-visualization', analysis, dynamicExamples['graph-visualization'])} 
+                  />
+                  <AIPrincipleAccordion 
+                    step="trend-analysis" 
+                    explanation={getAIPrincipleExplanation('trend-analysis', analysis, dynamicExamples['trend-analysis'])} 
+                  />
+                  <AIPrincipleAccordion 
+                    step="prediction" 
+                    explanation={getAIPrincipleExplanation('prediction', analysis, dynamicExamples['prediction'])} 
+                  />
                 </div>
               </div>
+            )}
+
+            {/* 문제(퀴즈) 섹션 */}
+            {analysis && !showQuiz && !quizResults && questions.length > 0 && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">📚 그래프 해석 문제</h2>
+                <p className="text-purple-200 mb-4">그래프를 보고 문제를 풀어보세요!</p>
+                <button
+                  onClick={() => setShowQuiz(true)}
+                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition"
+                >
+                  문제 풀기 시작하기
+                </button>
+              </div>
+            )}
+
+            {showQuiz && questions.length > 0 && (
+              <Quiz
+                questions={questions}
+                onComplete={handleQuizComplete}
+                analysisResult={{
+                  type: 'single',
+                  dataset: data.type === 'multi-series' 
+                    ? data.series.flatMap(s => s.data.map(p => ({ 
+                        label: `${s.name} (${p.year})`, 
+                        value: p.value,
+                        originalLabel: s.name
+                      })))
+                    : (data.data || []),
+                  title: data.name,
+                  xLabel: data.xLabel || '항목',
+                  yLabel: data.yLabel || '값',
+                  ...analysis
+                }}
+              />
+            )}
+
+            {/* 보고서 작성 섹션 */}
+            {analysis && !showReportWriter && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                <h2 className="text-2xl font-bold text-white mb-4">📝 보고서 작성</h2>
+                <p className="text-purple-200 mb-4">그래프를 분석하고 보고서를 작성해보세요!</p>
+                <button
+                  onClick={() => setShowReportWriter(true)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition"
+                >
+                  보고서 작성하기
+                </button>
+              </div>
+            )}
+
+            {showReportWriter && (
+              <ReportWriter
+                analysisResult={{
+                  type: 'single',
+                  dataset: data.type === 'multi-series' 
+                    ? data.series.flatMap(s => s.data.map(p => ({ 
+                        label: `${s.name} (${p.year})`, 
+                        value: p.value,
+                        originalLabel: s.name
+                      })))
+                    : (data.data || []),
+                  title: data.name,
+                  xLabel: data.xLabel || '항목',
+                  yLabel: data.yLabel || '값',
+                  ...analysis
+                }}
+                onBack={() => setShowReportWriter(false)}
+                stagedFiles={[]}
+              />
             )}
 
             <button
