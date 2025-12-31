@@ -574,37 +574,26 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
         </div>
       )}
 
-      {/* 문제풀이 섹션 - 보고서 제출 전에도 접근 가능 */}
-      {!quizResults && (
+      {/* 문제풀이 섹션 */}
+      {showQuiz && !quizResults && (
         <div className="glass-panel rounded-xl p-6 border-l-4 border-yellow-500">
           <h3 className="text-xl font-bold text-yellow-300 mb-4">📚 그래프 해석 문제</h3>
-          {!showQuiz ? (
-            <div>
-              <p className="text-purple-200 mb-4">
-                4학년 수학과 교육과정 성취기준에 맞는 그래프 해석 문제를 풀어보세요!
-              </p>
-              <button
-                onClick={() => setShowQuiz(true)}
-                className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
-              >
-                📝 문제 풀기 시작하기
-              </button>
-            </div>
-          ) : (
-            <Quiz 
-              questions={generateQuestions({
-                ...analysisResult,
-                dataset: analysisResult.dataset || [],
-                stats: analysisResult.stats || {},
-                trend: analysisResult.trend || analysisResult.analysis?.direction || '',
-                nextVal: analysisResult.nextVal,
-                avgChange: analysisResult.avgChange,
-                title: analysisResult.title || analysisResult.name || '데이터'
-              })} 
-              onComplete={handleQuizComplete}
-              analysisResult={analysisResult}
-            />
-          )}
+          <p className="text-purple-200 mb-4 text-sm">
+            4학년 수학과 교육과정 성취기준에 맞는 그래프 해석 문제를 풀어보세요!
+          </p>
+          <Quiz 
+            questions={generateQuestions({
+              ...analysisResult,
+              dataset: analysisResult.dataset || [],
+              stats: analysisResult.stats || {},
+              trend: analysisResult.trend || analysisResult.analysis?.direction || '',
+              nextVal: analysisResult.nextVal,
+              avgChange: analysisResult.avgChange,
+              title: analysisResult.title || analysisResult.name || '데이터'
+            })} 
+            onComplete={handleQuizComplete}
+            analysisResult={analysisResult}
+          />
         </div>
       )}
 
