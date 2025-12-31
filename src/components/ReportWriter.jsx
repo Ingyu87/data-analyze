@@ -168,7 +168,7 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
     
     setIsSubmitting(true);
     try {
-      const feedback = await generateReportFeedback(reportData, analysisResult);
+      const feedback = await generateReportFeedback(reportData, analysisResult, quizResults);
       setAiFeedback(feedback);
       // 보고서 작성 완료 후 문제풀이 표시
       setShowQuiz(true);
