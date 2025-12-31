@@ -118,25 +118,48 @@ export const generateQuestions = (data) => {
     explanation: `그래프를 자세히 보면 가장 큰 값은 ${max.toFixed(1)}이고, 이는 "${maxLabel || '해당 항목'}"에서 나타났어요. 가장 작은 값은 ${min.toFixed(1)}이고, 이는 "${minLabel || '해당 항목'}"에서 나타났어요. 그래프의 세로축(값)을 읽어서 찾을 수 있어요.`
   });
 
-  // 그래프 해석 문제 2: 평균값 계산하기 (4학년 수준)
-  const avg = calculateAverage(dataset);
-  const roundedAvg = Math.round(avg * 10) / 10;
+  // 그래프 해석 문제 2: 시간에 따른 변화 경향 파악하기 (4학년 수준)
+  const trendResult = analyzeTrend(dataset);
+  
+  let trendOptions = [];
+  let correctIndex = 0;
+  
+  if (trendResult === '증가') {
+    trendOptions = [
+      '시간이 지날수록 값이 점점 커져요',
+      '시간이 지날수록 값이 점점 작아져요',
+      '값이 거의 변하지 않아요',
+      '변화의 경향을 알 수 없어요'
+    ];
+    correctIndex = 0;
+  } else if (trendResult === '감소') {
+    trendOptions = [
+      '시간이 지날수록 값이 점점 작아져요',
+      '시간이 지날수록 값이 점점 커져요',
+      '값이 거의 변하지 않아요',
+      '변화의 경향을 알 수 없어요'
+    ];
+    correctIndex = 0;
+  } else {
+    trendOptions = [
+      '값이 거의 변하지 않아요',
+      '시간이 지날수록 값이 점점 커져요',
+      '시간이 지날수록 값이 점점 작아져요',
+      '변화의 경향을 알 수 없어요'
+    ];
+    correctIndex = 0;
+  }
   
   questions.push({
     id: 4,
     type: 'graph-interpretation',
     category: '그래프 해석',
-    question: `${title || '이 그래프'}의 평균값은 얼마인가요?`,
-    options: [
-      `약 ${roundedAvg}`,
-      `약 ${Math.round(avg)}`,
-      `약 ${Math.round(avg * 2) / 2}`,
-      '계산할 수 없어요'
-    ],
-    correctAnswer: 0,
+    question: `${title || '이 그래프'}를 보면 시간에 따라 값이 어떻게 변하고 있나요?`,
+    options: trendOptions,
+    correctAnswer: correctIndex,
     points: 20,
     achievementStandard: '[4수04-02]',
-    explanation: `모든 값들을 더한 후 개수로 나누면 평균값을 구할 수 있어요. 이 데이터의 평균값은 약 ${roundedAvg}예요. 평균은 데이터 전체의 대표값을 나타내는 중요한 지표예요.`
+    explanation: `그래프의 선이 오른쪽으로 갈수록 올라가면 값이 커지는 것이고, 내려가면 값이 작아지는 것이에요. 이 그래프는 ${trendResult === '증가' ? '증가' : trendResult === '감소' ? '감소' : '변화가 거의 없는'} 경향을 보이고 있어요. 그래프의 선이 ${trendResult === '증가' ? '오른쪽으로 갈수록 올라가는' : trendResult === '감소' ? '오른쪽으로 갈수록 내려가는' : '거의 평평한'} 모양이에요.`
   });
 
   return questions;
