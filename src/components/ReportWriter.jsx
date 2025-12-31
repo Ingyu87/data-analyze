@@ -271,15 +271,30 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-12 w-full">
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={onBack}
-          className="text-white hover:text-purple-300 transition flex items-center gap-2"
-        >
-          <ArrowLeft size={20} />
-          <span>돌아가기</span>
-        </button>
-        <h2 className="text-2xl font-bold text-white">📝 보고서 작성</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onBack}
+            className="text-white hover:text-purple-300 transition flex items-center gap-2"
+          >
+            <ArrowLeft size={20} />
+            <span>돌아가기</span>
+          </button>
+          <h2 className="text-2xl font-bold text-white">📝 보고서 작성</h2>
+        </div>
+        {!quizResults && (
+          <button
+            onClick={() => setShowQuiz(!showQuiz)}
+            className={`px-6 py-3 font-bold rounded-lg transition flex items-center gap-2 ${
+              showQuiz
+                ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                : 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white'
+            }`}
+          >
+            <span>📚</span>
+            {showQuiz ? '퀴즈 닫기' : '그래프 해석 문제 풀기'}
+          </button>
+        )}
       </div>
       
       {/* AI 원리 단계별 체크 - 보고서 작성 전 필수 */}
