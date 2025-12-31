@@ -166,12 +166,11 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
       }
     }
     
-    setIsSubmitting(true);
+      setIsSubmitting(true);
     try {
       const feedback = await generateReportFeedback(reportData, analysisResult, quizResults);
       setAiFeedback(feedback);
-      // 보고서 작성 완료 후 문제풀이 표시
-      setShowQuiz(true);
+      // 보고서 제출 완료 (퀴즈는 이미 표시될 수 있음)
     } catch (error) {
       console.error('피드백 생성 오류:', error);
       alert('피드백 생성 중 오류가 발생했습니다.');
@@ -560,26 +559,37 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
         </div>
       )}
 
-      {/* 문제풀이 섹션 */}
-      {showQuiz && !quizResults && (
+      {/* 문제풀이 섹션 - 보고서 제출 전에도 접근 가능 */}
+      {!quizResults && (
         <div className="glass-panel rounded-xl p-6 border-l-4 border-yellow-500">
-          <h3 className="text-xl font-bold text-yellow-300 mb-4">📚 문제풀이</h3>
-          <p className="text-purple-200 mb-4 text-sm">
-            AI 원리와 그래프 해석에 대한 문제를 풀어보세요!
-          </p>
-          <Quiz 
-            questions={generateQuestions({
-              ...analysisResult,
-              dataset: analysisResult.dataset || [],
-              stats: analysisResult.stats || {},
-              trend: analysisResult.trend || analysisResult.analysis?.direction || '',
-              nextVal: analysisResult.nextVal,
-              avgChange: analysisResult.avgChange,
-              title: analysisResult.title || analysisResult.name || '데이터'
-            })} 
-            onComplete={handleQuizComplete}
-            analysisResult={analysisResult}
-          />
+          <h3 className="text-xl font-bold text-yellow-300 mb-4">📚 그래프 해석 문제</h3>
+          {!showQuiz ? (
+            <div>
+              <p className="text-purple-200 mb-4">
+                4학년 수학과 교육과정 성취기준에 맞는 그래프 해석 문제를 풀어보세요!
+              </p>
+              <button
+                onClick={() => setShowQuiz(true)}
+                className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
+              >
+                📝 문제 풀기 시작하기
+              </button>
+            </div>
+          ) : (
+            <Quiz 
+              questions={generateQuestions({
+                ...analysisResult,
+                dataset: analysisResult.dataset || [],
+                stats: analysisResult.stats || {},
+                trend: analysisResult.trend || analysisResult.analysis?.direction || '',
+                nextVal: analysisResult.nextVal,
+                avgChange: analysisResult.avgChange,
+                title: analysisResult.title || analysisResult.name || '데이터'
+              })} 
+              onComplete={handleQuizComplete}
+              analysisResult={analysisResult}
+            />
+          )}
         </div>
       )}
 
