@@ -129,6 +129,9 @@ const Quiz = ({ questions, onComplete, analysisResult }) => {
                       )}
                     </div>
                     <div className="text-sm text-purple-200 bg-purple-900/40 p-3 rounded mt-2">
+                      {q.achievementStandard && (
+                        <div className="text-xs text-purple-400 mb-1">{q.achievementStandard}</div>
+                      )}
                       <strong>💡 해설:</strong> {q.explanation}
                     </div>
                   </div>
