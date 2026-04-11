@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { extractTextFromExcel, readTextFile } from './utils/fileReaders';
 import { parseTextToData, parseExcelData } from './utils/dataParser';
 import { analyzeSingleDataset } from './utils/analysis';
@@ -9,26 +9,74 @@ import AIPrincipleAccordion from './components/AIPrincipleAccordion';
 import Quiz from './components/Quiz';
 import ReportWriter from './components/ReportWriter';
 import { generateQuestions } from './utils/questionGenerator';
+import {
+  loadSnapshot,
+  saveSnapshot,
+  clearSnapshot,
+  defaultPersistedState,
+} from './utils/sessionSnapshot';
 
 const App = () => {
-  const [data, setData] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
-  const [aiExplanation, setAiExplanation] = useState(null);
+  const persistedInit = useMemo(() => loadSnapshot() ?? defaultPersistedState(), []);
+
+  const [data, setData] = useState(persistedInit.data);
+  const [analysis, setAnalysis] = useState(persistedInit.analysis);
+  const [aiExplanation, setAiExplanation] = useState(persistedInit.aiExplanation);
   const [loading, setLoading] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizResults, setQuizResults] = useState(null);
-  const [showReportWriter, setShowReportWriter] = useState(false);
-  const [dynamicExamples, setDynamicExamples] = useState({});
-  const [isEditingAnalysis, setIsEditingAnalysis] = useState(false);
-  const [editedAnalysis, setEditedAnalysis] = useState(null);
-  const [originalAnalysis, setOriginalAnalysis] = useState(null);
-  const [selectedChartType, setSelectedChartType] = useState('bar'); // 'bar' or 'line'
-  const [editedPrincipleExplanations, setEditedPrincipleExplanations] = useState({});
-  const [selectedDatasetIndex, setSelectedDatasetIndex] = useState(0);
-  const [checkedSteps, setCheckedSteps] = useState({
-    'file-upload': false,
-    'data-parsing': false
-  });
+  const [showQuiz, setShowQuiz] = useState(persistedInit.showQuiz);
+  const [quizResults, setQuizResults] = useState(persistedInit.quizResults);
+  const [showReportWriter, setShowReportWriter] = useState(persistedInit.showReportWriter);
+  const [dynamicExamples, setDynamicExamples] = useState(persistedInit.dynamicExamples);
+  const [isEditingAnalysis, setIsEditingAnalysis] = useState(persistedInit.isEditingAnalysis);
+  const [editedAnalysis, setEditedAnalysis] = useState(persistedInit.editedAnalysis);
+  const [originalAnalysis, setOriginalAnalysis] = useState(persistedInit.originalAnalysis);
+  const [selectedChartType, setSelectedChartType] = useState(persistedInit.selectedChartType);
+  const [editedPrincipleExplanations, setEditedPrincipleExplanations] = useState(
+    persistedInit.editedPrincipleExplanations
+  );
+  const [selectedDatasetIndex, setSelectedDatasetIndex] = useState(persistedInit.selectedDatasetIndex);
+  const [checkedSteps, setCheckedSteps] = useState(persistedInit.checkedSteps);
+
+  useEffect(() => {
+    if (!data) {
+      clearSnapshot();
+      return;
+    }
+    const t = setTimeout(() => {
+      saveSnapshot({
+        data,
+        analysis,
+        aiExplanation,
+        showQuiz,
+        quizResults,
+        showReportWriter,
+        dynamicExamples,
+        isEditingAnalysis,
+        editedAnalysis,
+        originalAnalysis,
+        selectedChartType,
+        editedPrincipleExplanations,
+        selectedDatasetIndex,
+        checkedSteps,
+      });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [
+    data,
+    analysis,
+    aiExplanation,
+    showQuiz,
+    quizResults,
+    showReportWriter,
+    dynamicExamples,
+    isEditingAnalysis,
+    editedAnalysis,
+    originalAnalysis,
+    selectedChartType,
+    editedPrincipleExplanations,
+    selectedDatasetIndex,
+    checkedSteps,
+  ]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -195,6 +243,7 @@ const App = () => {
   };
 
   const reset = () => {
+    clearSnapshot();
     setData(null);
     setAnalysis(null);
     setAiExplanation(null);
@@ -220,6 +269,18 @@ const App = () => {
           <h1 className="text-4xl font-bold text-white mb-2">🤖 인공지능 원리로 익히는 자료와 가능성</h1>
           <p className="text-purple-200">데이터를 업로드하면 자동으로 분석하고 시각화합니다</p>
         </header>
+
+        {data && (
+          <div className="mb-6 flex justify-start">
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-purple-400/40 text-white font-semibold py-2 px-4 rounded-lg transition text-sm"
+            >
+              ← 뒤로가기
+            </button>
+          </div>
+        )}
 
         {!data ? (
           <div className="space-y-6">
