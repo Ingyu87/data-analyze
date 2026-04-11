@@ -10,8 +10,6 @@ export const defaultPersistedState = () => ({
   data: null,
   analysis: null,
   aiExplanation: null,
-  showQuiz: false,
-  quizResults: null,
   showReportWriter: false,
   dynamicExamples: {},
   isEditingAnalysis: false,

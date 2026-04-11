@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Icons } from './Icons';
 import { checkContentSafety } from '../utils/contentSafety';
 import { generateReportFeedback } from '../utils/reportFeedback';
@@ -6,9 +6,6 @@ import { generateReportPDF } from '../utils/reportPDFGenerator';
 import ChartRender from './ChartRender';
 import AIPrincipleAccordion from './AIPrincipleAccordion';
 import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
-import Quiz from './Quiz';
-import { generateQuestions } from '../utils/questionGenerator';
-
 const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatasetIndex = 0 }) => {
   const { ArrowLeft } = Icons;
   
@@ -36,18 +33,31 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
     'prediction': false
   });
   
-  // 문제풀이 관련 상태
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizResults, setQuizResults] = useState(null);
-  
-  // 디버깅 로그
-  useEffect(() => {
-    console.log('ReportWriter 마운트됨', { 
-      hasAnalysisResult: !!analysisResult, 
-      datasetLength: analysisResult?.dataset?.length 
-    });
-  }, [analysisResult]);
-  
+  const chartPreviewData = useMemo(() => {
+    if (!data || !analysisResult) return null;
+    const multi = data.type === 'multi-dataset';
+    const ds = multi ? data.datasets[selectedDatasetIndex]?.data || [] : null;
+    return {
+      type: multi ? 'multi-dataset' : 'single',
+      dataset: multi
+        ? ds
+        : data.type === 'multi-series'
+          ? data.series.flatMap((s) =>
+              s.data.map((p) => ({
+                label: `${s.name} (${p.year})`,
+                value: p.value,
+                originalLabel: s.name,
+              }))
+            )
+          : data.data || [],
+      title: data.name,
+      xLabel: data.xLabel || '항목',
+      yLabel: multi
+        ? data.datasets[selectedDatasetIndex]?.name || '값'
+        : data.yLabel || '값',
+    };
+  }, [data, analysisResult, selectedDatasetIndex]);
+
   // analysisResult가 없으면 에러 메시지 표시 (hooks 이후에 조건부 렌더링)
   if (!analysisResult) {
     return (
@@ -168,9 +178,9 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
     
       setIsSubmitting(true);
     try {
-      const feedback = await generateReportFeedback(reportData, analysisResult, quizResults);
+      const feedback = await generateReportFeedback(reportData, analysisResult, null);
       setAiFeedback(feedback);
-      // 보고서 제출 완료 (퀴즈는 이미 표시될 수 있음)
+      // 보고서 제출 완료
     } catch (error) {
       console.error('피드백 생성 오류:', error);
       alert('피드백 생성 중 오류가 발생했습니다.');
@@ -181,80 +191,15 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
   
   const handleDownloadPDF = async () => {
     try {
-      await generateReportPDF(reportData, analysisResult, aiFeedback);
+      await generateReportPDF(
+        analysisResult,
+        null,
+        Array.isArray(stagedFiles) ? stagedFiles : [],
+        aiFeedback,
+        reportData
+      );
     } catch (error) {
       console.error('PDF 생성 오류:', error);
-      alert('PDF 생성 중 오류가 발생했습니다.');
-    }
-  };
-  
-  // 문제풀이 완료 핸들러
-  const handleQuizComplete = (results) => {
-    setQuizResults(results);
-  };
-  
-  // 문제풀이 결과 PDF 다운로드
-  const handleDownloadQuizPDF = async () => {
-    try {
-      const jsPDF = await import('jspdf');
-      const doc = new jsPDF.default();
-      
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.text('문제풀이 결과 보고서', 105, 20, { align: 'center' });
-      
-      let yPos = 35;
-      const margin = 20;
-      const pageWidth = doc.internal.pageSize.width;
-      const maxWidth = pageWidth - (margin * 2);
-      
-      // 점수 정보
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`총점: ${quizResults.totalScore}점 / ${quizResults.maxScore}점`, margin, yPos);
-      yPos += 10;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(12);
-      doc.text(`정답: ${quizResults.correctCount}문제 / ${quizResults.totalQuestions}문제`, margin, yPos);
-      yPos += 15;
-      
-      // 각 문제별 결과
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('문제별 해설', margin, yPos);
-      yPos += 10;
-      
-      quizResults.results.forEach((result, idx) => {
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`문제 ${idx + 1}`, margin, yPos);
-        yPos += 7;
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        const questionLines = doc.splitTextToSize(result.question, maxWidth);
-        doc.text(questionLines, margin, yPos);
-        yPos += questionLines.length * 5 + 5;
-        
-        doc.setFont('helvetica', 'bold');
-        doc.text(result.isCorrect ? '✅ 정답입니다!' : '❌ 틀렸습니다.', margin, yPos);
-        yPos += 7;
-        
-        doc.setFont('helvetica', 'normal');
-        const explanationLines = doc.splitTextToSize(`💡 해설: ${result.explanation}`, maxWidth);
-        doc.text(explanationLines, margin, yPos);
-        yPos += explanationLines.length * 5 + 10;
-      });
-      
-      const fileName = `문제풀이_결과_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
-    } catch (error) {
-      console.error('문제풀이 PDF 생성 오류:', error);
       alert('PDF 생성 중 오류가 발생했습니다.');
     }
   };
@@ -271,30 +216,15 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-12 w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="text-white hover:text-purple-300 transition flex items-center gap-2"
-          >
-            <ArrowLeft size={20} />
-            <span>돌아가기</span>
-          </button>
-          <h2 className="text-2xl font-bold text-white">📝 보고서 작성</h2>
-        </div>
-        {!quizResults && (
-          <button
-            onClick={() => setShowQuiz(!showQuiz)}
-            className={`px-6 py-3 font-bold rounded-lg transition flex items-center gap-2 ${
-              showQuiz
-                ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                : 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white'
-            }`}
-          >
-            <span>📚</span>
-            {showQuiz ? '퀴즈 닫기' : '그래프 해석 문제 풀기'}
-          </button>
-        )}
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={onBack}
+          className="text-white hover:text-purple-300 transition flex items-center gap-2"
+        >
+          <ArrowLeft size={20} />
+          <span>돌아가기</span>
+        </button>
+        <h2 className="text-2xl font-bold text-white">📝 보고서 작성</h2>
       </div>
       
       {/* AI 원리 단계별 체크 - 보고서 작성 전 필수 */}
@@ -371,61 +301,33 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
           )}
         </div>
         
-        {/* 그래프 미리보기 - App.jsx와 동일한 로직 */}
-          {data ? (
+        {/* 그래프 미리보기 — chartPreviewData로 참조 안정화(입력할 때마다 차트가 덜리렌더) */}
+          {chartPreviewData && chartPreviewData.dataset?.length > 0 ? (
             <div className="mb-4">
               <h4 className="text-purple-200 font-semibold text-sm mb-4">📊 그래프 미리보기</h4>
-              {/* 두 그래프를 나란히 표시 (App.jsx와 동일) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* 막대 그래프 */}
-                <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20 min-h-[460px]">
                   <h3 className="text-xl font-bold mb-6 text-white flex items-center">
                     <span className="w-2 h-6 bg-blue-500 rounded-full mr-2"></span>
                     막대 그래프 (Bar Chart)
                   </h3>
-                  <div className="chart-container">
+                  <div className="chart-container min-h-[400px]">
                     <ChartRender
-                      data={{
-                        type: data.type === 'multi-dataset' ? 'multi-dataset' : 'single',
-                        dataset: data.type === 'multi-dataset'
-                          ? (data.datasets[selectedDatasetIndex]?.data || [])
-                          : (data.type === 'multi-series' 
-                            ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
-                            : (data.data || [])),
-                        title: data.name,
-                        xLabel: data.xLabel || '항목',
-                        yLabel: data.type === 'multi-dataset' 
-                          ? (data.datasets[selectedDatasetIndex]?.name || '값')
-                          : (data.yLabel || '값')
-                      }}
+                      data={chartPreviewData}
                       chartType="bar"
                       chartDivId="report-chart-bar"
                       onRenderingChange={setIsChartRendering}
                     />
                   </div>
                 </div>
-                
-                {/* 꺾은선 그래프 */}
-                <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20">
+                <div className="bg-white/5 rounded-2xl p-6 border border-purple-500/20 min-h-[460px]">
                   <h3 className="text-xl font-bold mb-6 text-white flex items-center">
                     <span className="w-2 h-6 bg-emerald-500 rounded-full mr-2"></span>
                     꺾은선 그래프 (Line Chart)
                   </h3>
-                  <div className="chart-container">
+                  <div className="chart-container min-h-[400px]">
                     <ChartRender
-                      data={{
-                        type: data.type === 'multi-dataset' ? 'multi-dataset' : 'single',
-                        dataset: data.type === 'multi-dataset'
-                          ? (data.datasets[selectedDatasetIndex]?.data || [])
-                          : (data.type === 'multi-series' 
-                            ? data.series.flatMap(s => s.data.map(p => ({ label: `${s.name} (${p.year})`, value: p.value, originalLabel: s.name })))
-                            : (data.data || [])),
-                        title: data.name,
-                        xLabel: data.xLabel || '항목',
-                        yLabel: data.type === 'multi-dataset' 
-                          ? (data.datasets[selectedDatasetIndex]?.name || '값')
-                          : (data.yLabel || '값')
-                      }}
+                      data={chartPreviewData}
                       chartType="line"
                       chartDivId="report-chart-line"
                       onRenderingChange={setIsChartRendering}
@@ -574,51 +476,6 @@ const ReportWriter = ({ analysisResult, onBack, stagedFiles, data, selectedDatas
         </div>
       )}
 
-      {/* 문제풀이 섹션 */}
-      {showQuiz && !quizResults && (
-        <div className="glass-panel rounded-xl p-6 border-l-4 border-yellow-500">
-          <h3 className="text-xl font-bold text-yellow-300 mb-4">📚 그래프 해석 문제</h3>
-          <p className="text-purple-200 mb-4 text-sm">
-            4학년 수학과 교육과정 성취기준에 맞는 그래프 해석 문제를 풀어보세요!
-          </p>
-          <Quiz 
-            questions={generateQuestions({
-              ...analysisResult,
-              dataset: analysisResult.dataset || [],
-              stats: analysisResult.stats || {},
-              trend: analysisResult.trend || analysisResult.analysis?.direction || '',
-              nextVal: analysisResult.nextVal,
-              avgChange: analysisResult.avgChange,
-              title: analysisResult.title || analysisResult.name || '데이터'
-            })} 
-            onComplete={handleQuizComplete}
-            analysisResult={analysisResult}
-          />
-        </div>
-      )}
-
-      {/* 문제풀이 결과 */}
-      {quizResults && (
-        <div className="glass-panel rounded-xl p-6 border-l-4 border-purple-500">
-          <h3 className="text-xl font-bold text-purple-300 mb-4">📝 문제풀이 결과</h3>
-          <div className="text-center mb-6">
-            <div className="text-4xl font-bold text-white mb-2">
-              {quizResults.totalScore}점 / {quizResults.maxScore}점
-            </div>
-            <div className="text-purple-200">
-              정답: {quizResults.correctCount}문제 / {quizResults.totalQuestions}문제
-            </div>
-          </div>
-          <div className="flex justify-center">
-            <button
-              onClick={handleDownloadQuizPDF}
-              className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
-            >
-              <span>📄</span> 문제풀이 결과 PDF 다운로드
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

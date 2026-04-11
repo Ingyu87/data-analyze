@@ -6,18 +6,14 @@ import AIPrincipleAccordion from './AIPrincipleAccordion';
 import ReportWriter from './ReportWriter';
 import { getAIPrincipleExplanation } from '../utils/aiPrincipleExplainer';
 import { generateDynamicExample } from '../utils/aiPrincipleExampleGenerator';
-import { generateQuestions, generateCorrelationQuestions } from '../utils/questionGenerator';
 import { generateReportPNG } from '../utils/reportGenerator';
 import { getChartTypeInfo, getRecommendedChartType } from '../utils/chartTypeExplainer';
-import Quiz from './Quiz';
 
 const Result = ({ analysisResult, onReset, stagedFiles, data, onDatasetChange }) => {
   const { RefreshCw, Download } = Icons;
   const [chartType, setChartType] = useState(() => 
     analysisResult ? getRecommendedChartType(analysisResult) : 'line'
   );
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizResults, setQuizResults] = useState(null);
   const [showReportWriter, setShowReportWriter] = useState(false);
   const [dynamicExamples, setDynamicExamples] = useState({});
   const [showChartExplanation, setShowChartExplanation] = useState(true);
@@ -58,24 +54,9 @@ const Result = ({ analysisResult, onReset, stagedFiles, data, onDatasetChange })
     loadExamples();
   }, [analysisResult]);
   
-  // 문제 생성
-  const questions = React.useMemo(() => {
-    if (!analysisResult) return [];
-    if (analysisResult.type === 'single') {
-      return generateQuestions(analysisResult);
-    } else {
-      return generateCorrelationQuestions(analysisResult);
-    }
-  }, [analysisResult]);
-  
-  const handleQuizComplete = (results) => {
-    setQuizResults(results);
-    setShowQuiz(false);
-  };
-  
   const handleDownloadReport = async () => {
     try {
-      await generateReportPNG(analysisResult, quizResults, stagedFiles);
+      await generateReportPNG(analysisResult, null, stagedFiles);
     } catch (error) {
       console.error('보고서 생성 실패:', error);
       alert('보고서 생성 중 오류가 발생했습니다.');
@@ -547,68 +528,30 @@ const Result = ({ analysisResult, onReset, stagedFiles, data, onDatasetChange })
         </div>
       )}
       
-      {/* 문제와 보고서 버튼 - 상호 배타적이지 않음 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass-panel rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4 text-center">📚 그래프 해석 문제</h3>
-          <p className="text-purple-200 text-center mb-6">
-            초등학교 4학년 수준의 문제를 풀어보세요!
-          </p>
-          {!showQuiz && !quizResults ? (
+      <div className="glass-panel rounded-xl p-6 max-w-xl mx-auto">
+        <h3 className="text-xl font-bold text-white mb-4 text-center">📝 보고서 작성</h3>
+        <p className="text-purple-200 text-center mb-6">
+          데이터 분석 결과를 바탕으로 보고서를 작성해보세요!
+        </p>
+        {!showReportWriter ? (
+          <button
+            onClick={() => setShowReportWriter(true)}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
+          >
+            보고서 작성하기
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-green-300 text-center mb-2">✅ 보고서를 작성하고 있어요!</p>
             <button
-              onClick={() => setShowQuiz(true)}
-              className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
+              onClick={() => setShowReportWriter(false)}
+              className="w-full bg-gray-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-gray-700 transition"
             >
-              문제 풀기 (2문제)
+              보고서 닫기
             </button>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-green-300 text-center mb-2">✅ 문제를 풀고 있어요!</p>
-              <button
-                onClick={() => {
-                  setShowQuiz(false);
-                  setQuizResults(null);
-                }}
-                className="w-full bg-gray-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-gray-700 transition"
-              >
-                문제 닫기
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="glass-panel rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4 text-center">📝 보고서 작성</h3>
-          <p className="text-purple-200 text-center mb-6">
-            데이터 분석 결과를 바탕으로 보고서를 작성해보세요!
-          </p>
-          {!showReportWriter ? (
-            <button
-              onClick={() => setShowReportWriter(true)}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-6 py-3 rounded-lg hover:shadow-lg transition"
-            >
-              보고서 작성하기
-            </button>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-green-300 text-center mb-2">✅ 보고서를 작성하고 있어요!</p>
-              <button
-                onClick={() => setShowReportWriter(false)}
-                className="w-full bg-gray-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-gray-700 transition"
-              >
-                보고서 닫기
-              </button>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-
-      {showQuiz && (
-        <Quiz
-          questions={questions}
-          onComplete={handleQuizComplete}
-          analysisResult={analysisResult}
-        />
-      )}
 
       {showReportWriter && analysisResult && (
         <div className="mt-6 w-full">
@@ -633,29 +576,13 @@ const Result = ({ analysisResult, onReset, stagedFiles, data, onDatasetChange })
         </div>
       )}
 
-      {quizResults && (
-        <div className="glass-panel rounded-xl p-6">
-          <h3 className="text-xl font-bold text-white mb-4">✅ 문제 풀이 완료!</h3>
-          <div className="text-center mb-6">
-            <div className="text-3xl font-bold text-yellow-300 mb-2">
-              {quizResults.totalScore}점 / {quizResults.maxScore}점
-            </div>
-            <div className="text-purple-200">
-              정답: {quizResults.correctCount}문제 / 전체: {quizResults.totalQuestions}문제
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex justify-center gap-4">
-        {quizResults && (
-          <button
-            onClick={handleDownloadReport}
-            className="text-white border border-green-500 bg-green-900/50 px-6 py-3 rounded-full hover:bg-green-800/50 flex gap-2 items-center"
-          >
-            <Download size={20} /> 결과 보고서 다운로드 (PNG)
-          </button>
-        )}
+        <button
+          onClick={handleDownloadReport}
+          className="text-white border border-green-500 bg-green-900/50 px-6 py-3 rounded-full hover:bg-green-800/50 flex gap-2 items-center"
+        >
+          <Download size={20} /> 결과 보고서 다운로드 (PNG)
+        </button>
         <button
           onClick={onReset}
           className="text-white border border-purple-500 px-6 py-3 rounded-full hover:bg-purple-900/50 flex gap-2"

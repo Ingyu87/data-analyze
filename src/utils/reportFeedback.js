@@ -201,7 +201,7 @@ const generateFallbackFeedback = (analysisResult, quizResults, achievementLevel)
   } else {
     feedback.strengths = '데이터를 분석하고 그래프로 나타내는 과정에 참여한 점이 좋아요!';
     feedback.improvements = '그래프를 더 자세히 관찰하고, 변화의 경향을 파악하는 연습을 해보면 좋을 것 같아요.';
-    feedback.suggestions = '퀴즈를 풀어보면서 그래프 해석 능력을 확인해보세요.';
+    feedback.suggestions = '그래프의 최댓값·최솟값·추세를 스스로 말로 설명해 보면 해석이 더 잘 됩니다.';
   }
 
   return feedback;
