@@ -77,8 +77,8 @@ export const readTextFile = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target.result;
-      // 간단한 인코딩 체크 (한글 깨짐 감지)
-      if (content.includes('')) {
+      // UTF-8 오역으로 생기는 대체 문자(U+FFFD)가 있으면 EUC-KR로 재시도
+      if (content.includes('\uFFFD')) {
         const reader2 = new FileReader();
         reader2.onload = (e2) => resolve(e2.target.result);
         reader2.onerror = reject;

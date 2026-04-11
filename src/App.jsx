@@ -38,7 +38,8 @@ const App = () => {
     try {
       // 파일 읽기 - HTML 코드와 동일한 방식
       let parseResult = null;
-      
+      let text = '';
+
       if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
         // Excel 파일: HTML 코드처럼 2D 배열로 직접 파싱
         try {
@@ -60,7 +61,7 @@ const App = () => {
         }
       } else if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
         // CSV 파일: 텍스트로 파싱
-        const text = await readTextFile(file);
+        text = await readTextFile(file);
         if (!text) {
           alert('파일을 읽을 수 없습니다. 파일이 손상되었거나 비어있을 수 있습니다.');
           setLoading(false);
@@ -81,7 +82,9 @@ const App = () => {
         }
         alert(errorMsg);
         console.error('파싱 실패 상세:', parseResult);
-        console.error('파일 내용 미리보기:', text.substring(0, 500));
+        if (text) {
+          console.error('파일 내용 미리보기:', text.substring(0, 500));
+        }
         setLoading(false);
         return;
       }
