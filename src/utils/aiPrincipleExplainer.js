@@ -1,0 +1,264 @@
+/**
+ * 각 활동 단계별로 사용된 AI 원리를 초등학생 수준으로 설명합니다.
+ */
+
+import { generateDynamicExample, getFallbackExample } from './aiPrincipleExampleGenerator';
+
+export const getAIPrincipleExplanation = (step, analysisResult = null, dynamicExample = null) => {
+  // 실제 데이터 기반으로 예시 생성
+  const getDataBasedExample = (step, analysisResult) => {
+    if (!analysisResult || !analysisResult.dataset || analysisResult.dataset.length === 0) {
+      return null;
+    }
+
+    const dataset = analysisResult.dataset;
+    const dataName = analysisResult.title || analysisResult.name || '데이터';
+    
+    switch (step) {
+      case 'file-upload':
+        return `${dataName} 파일에서 연도별 데이터(${dataset.length}개)를 찾아서 읽어요.`;
+      
+      case 'data-parsing':
+        const sampleLabels = dataset.slice(0, 3).map(d => d.year || d.label).join(', ');
+        return `${dataName} 데이터에서 "${sampleLabels}" 등의 연도와 값들을 구분해서 정리해요.`;
+      
+      case 'graph-visualization':
+        const sampleValues = dataset.slice(0, 4).map(d => d.value).join(', ');
+        return `${dataName}의 ${sampleValues} 값을 연도별로 그래프에 표시해요.`;
+      
+      case 'trend-analysis':
+        if (analysisResult.avgChange !== undefined) {
+          const change = parseFloat(analysisResult.avgChange);
+          const direction = change > 0 ? '증가' : change < 0 ? '감소' : '유지';
+          return `${dataName} 데이터를 분석해서 평균적으로 ${Math.abs(change).toFixed(1)}씩 ${direction}하는 패턴을 찾아요.`;
+        }
+        return `${dataName} 데이터의 변화 패턴을 분석해요.`;
+      
+      case 'ai-explanation':
+        if (analysisResult.childExplanation?.summary) {
+          return `"${analysisResult.childExplanation.summary.substring(0, 60)}..."와 같이 쉬운 말로 설명해요.`;
+        }
+        return `${dataName} 데이터를 분석해서 초등학생이 이해하기 쉬운 말로 설명해요.`;
+      
+      case 'prediction':
+        if (analysisResult.nextVal !== undefined) {
+          return `${dataName} 데이터를 보고 다음 값이 약 ${Math.round(analysisResult.nextVal)}이 될 것으로 예측해요.`;
+        }
+        return `${dataName} 데이터의 패턴을 보고 미래 값을 예측해요.`;
+      
+      default:
+        return null;
+    }
+  };
+
+  const dataExample = getDataBasedExample(step, analysisResult) || dynamicExample;
+
+  const explanations = {
+    'file-upload': {
+      title: '📁 1단계: 파일 읽기 - 패턴 찾기',
+      principle: '패턴 인식 (Pattern Recognition)',
+      explanation: `컴퓨터가 파일을 읽을 때, 마치 우리가 글을 읽는 것처럼 파일 안에 숨어있는 숫자와 글자를 찾아내는 거예요! 
+      
+예를 들어, 엑셀 파일을 보면 컴퓨터가 "아, 여기는 이름이고, 여기는 숫자구나!"라고 알아채는 거예요. 마치 우리가 그림책을 보면서 "이건 강아지고, 이건 고양이구나!"라고 알아보는 것과 같아요.
+
+이렇게 파일에서 데이터를 찾아내는 것을 "패턴 인식(Pattern Recognition)"이라고 해요. 컴퓨터가 반복해서 연습해서 배운 거예요!
+
+💡 실생활 예시:
+- 우리가 친구 얼굴을 보고 "아, 이건 민수구나!"라고 알아보는 것처럼, 컴퓨터도 파일에서 "아, 이건 연도구나, 이건 숫자구나!"라고 알아봐요.
+- ${dataExample || '엑셀 파일에서 숫자와 글자를 구분해서 읽어요.'}
+
+🎯 이 단계에서 배우는 것:
+- 컴퓨터가 어떻게 파일을 읽는지 이해하기
+- 패턴을 찾아내는 것이 왜 중요한지 알기`,
+      icon: '🔍',
+      example: dataExample || '엑셀 파일에서 숫자와 글자를 구분해서 읽어요.'
+    },
+    
+    'data-parsing': {
+      title: '🔢 2단계: 데이터 정리 - 구조 알아보기',
+      principle: '구조 인식 (Structure Recognition)',
+      explanation: `파일에서 읽은 글자들을 컴퓨터가 이해할 수 있는 데이터로 바꾸는 거예요!
+      
+예를 들어, CSV 파일에서 "이름, 숫자"라는 제목을 보고, 컴퓨터가 "아, 첫 번째는 이름이고, 두 번째는 숫자구나!"라고 알아채는 거예요. 마치 우리가 표를 보면서 "이 줄은 제목이고, 이 줄은 데이터구나!"라고 구분하는 것처럼요!
+
+컴퓨터가 파일의 구조(어디가 제목이고, 어디가 데이터인지)를 알아채서, 숫자와 글자를 제대로 구분하는 것을 "구조 인식(Structure Recognition)"이라고 해요. 패턴을 찾아서 데이터를 정리하는 거예요!
+
+💡 실생활 예시:
+- 우리가 책을 읽을 때 "이 줄은 제목이구나, 이 줄은 본문이구나!"라고 구분하는 것처럼, 컴퓨터도 "이 줄은 연도구나, 이 줄은 숫자구나!"라고 구분해요.
+- ${dataExample || 'CSV 파일의 "이름, 숫자" 형식을 보고 데이터로 바꿔요.'}
+
+🎯 이 단계에서 배우는 것:
+- 데이터를 어떻게 정리하는지 이해하기
+- 구조를 인식하는 것이 왜 중요한지 알기`,
+      icon: '📝',
+      example: dataExample || 'CSV 파일의 "이름, 숫자" 형식을 보고 데이터로 바꿔요.'
+    },
+    
+    'graph-visualization': {
+      title: '📊 3단계: 그래프 만들기 - 숫자를 그림으로 바꾸기',
+      principle: '데이터 시각화 (Data Visualization)',
+      explanation: `숫자들을 보기 좋은 그래프로 바꾸는 거예요!
+      
+컴퓨터가 숫자들을 받아서 "이 숫자는 높게, 이 숫자는 낮게"라고 계산해서 그래프를 그려요. 마치 우리가 점들을 찍어서 선으로 연결하는 것처럼요!
+
+꺾은선 그래프는 숫자들이 어떻게 변하는지 보여주고, 막대 그래프는 각 숫자가 얼마나 큰지 비교해서 보여줘요. 이렇게 숫자를 그림으로 바꾸는 것을 "데이터 시각화(Data Visualization)"라고 해요!
+
+💡 실생활 예시:
+- 우리가 키를 재서 종이에 점을 찍고 선으로 연결하는 것처럼, 컴퓨터도 숫자들을 받아서 그래프로 그려요.
+- ${dataExample || getFallbackExample(step, analysisResult) || '10, 15, 20, 25라는 숫자를 받아서 그래프로 그려요.'}
+- 그래프를 보면 숫자들이 한눈에 보여서 "아, 이게 더 크구나!"라고 쉽게 알 수 있어요!
+
+🎯 이 단계에서 배우는 것:
+- 왜 그래프가 필요한지 이해하기
+- 어떤 그래프를 선택해야 하는지 알기 (시간에 따른 변화→꺾은선, 크기 비교→막대)`,
+      icon: '📈',
+      example: dataExample || getFallbackExample(step, analysisResult) || '10, 15, 20, 25라는 숫자를 받아서 그래프로 그려요.'
+    },
+    
+    'trend-analysis': {
+      title: '📈 4단계: 패턴 찾기 - 규칙 찾기',
+      principle: '선형 회귀 (Linear Regression)',
+      explanation: `그래프를 보면서 "이 숫자들이 어떻게 변하고 있나?"를 찾는 거예요!
+      
+컴퓨터가 그래프의 점들을 보고, 마치 자로 선을 그어서 "아, 이 그래프는 위로 올라가고 있구나!" 또는 "아래로 내려가고 있구나!"라고 알아채는 거예요.
+
+예를 들어, 1월에 10개, 2월에 12개, 3월에 14개라면, 컴퓨터가 "매달 2개씩 늘어나고 있네!"라고 계산하는 거예요. 이렇게 패턴을 찾는 것을 "선형 회귀(Linear Regression)"라고 해요. 마치 우리가 수학 문제에서 규칙을 찾는 것처럼요!
+
+💡 실생활 예시:
+- 우리가 "1, 3, 5, 7..."을 보면 "2씩 늘어나네!"라고 규칙을 찾는 것처럼, 컴퓨터도 그래프를 보면서 "이 그래프는 위로 올라가네!"라고 패턴을 찾아요.
+- ${dataExample || getFallbackExample(step, analysisResult) || '그래프의 점들을 보고 "매달 2씩 증가한다"는 규칙을 찾아요.'}
+- 이 패턴을 찾으면 앞으로 어떻게 될지 예측할 수 있어요!
+
+🎯 이 단계에서 배우는 것:
+- 그래프에서 패턴을 찾는 방법 이해하기
+- 패턴을 찾으면 왜 유용한지 알기`,
+      icon: '🔎',
+      example: dataExample || getFallbackExample(step, analysisResult) || '그래프의 점들을 보고 "매달 2씩 증가한다"는 규칙을 찾아요.'
+    },
+    
+    'correlation-analysis': {
+      title: '🔗 5단계: 관계 찾기 - 친구 찾기',
+      principle: '상관관계 분석 (Correlation Analysis)',
+      explanation: `두 개의 데이터가 서로 어떤 관계인지 찾는 거예요!
+      
+예를 들어, "날씨가 추우면 감기 환자가 늘어난다"는 것처럼, 하나가 변하면 다른 하나도 변하는지 확인하는 거예요.
+
+컴퓨터가 두 그래프를 비교해서 "아, 이 그래프가 올라가면 저 그래프도 올라가네!" 또는 "이 그래프가 올라가면 저 그래프는 내려가네!"라고 알아채는 거예요.
+
+이렇게 두 데이터의 관계를 찾는 것을 "상관관계 분석(Correlation Analysis)"이라고 해요. 마치 두 친구가 함께 다니는지, 아니면 서로 반대로 다니는지 확인하는 것처럼요!`,
+      icon: '🤝',
+      example: dynamicExample || getFallbackExample(step, analysisResult) || '온도 데이터와 감기 환자 데이터를 비교해서 친구인지 확인해요.'
+    },
+    
+    'ai-explanation': {
+      title: '🤖 6단계: 쉬운 설명 만들기 - 쉬운 말로 바꾸기',
+      principle: '자연어 생성 (Natural Language Generation)',
+      explanation: `컴퓨터가 숫자와 그래프를 보고, 초등학생이 이해하기 쉬운 말로 설명을 만들어주는 거예요!
+      
+예를 들어, "데이터가 2씩 증가한다"는 것을 컴퓨터가 "마치 계단을 오르는 것처럼 점점 올라가고 있어요!"라고 바꿔서 설명해주는 거예요.
+
+이렇게 숫자를 우리가 이해하기 쉬운 말로 바꾸는 것을 "자연어 생성(Natural Language Generation)"이라고 해요. 마치 번역기처럼, 숫자 언어를 우리 말로 바꿔주는 거예요!
+
+컴퓨터가 많은 책과 글을 읽어서 배운 거예요. 그래서 우리가 이해하기 쉽게 설명할 수 있는 거죠!
+
+💡 실생활 예시:
+- 우리가 영어를 한국어로 번역하는 것처럼, 컴퓨터도 "숫자 언어"를 "우리 말"로 바꿔요.
+- ${dataExample || getFallbackExample(step, analysisResult) || '통계 데이터를 받아서 "롤러코스터처럼 빠르게 올라가고 있어요!"라고 설명해요.'}
+- "127, 125, 119..."라는 숫자를 "2019년에 가장 많았고, 그 다음부터는 조금씩 줄어들었어요"라고 쉬운 말로 바꿔요!
+
+🎯 이 단계에서 배우는 것:
+- 컴퓨터가 어떻게 쉬운 말로 설명하는지 이해하기
+- 왜 쉬운 설명이 중요한지 알기`,
+      icon: '💬',
+      example: dataExample || getFallbackExample(step, analysisResult) || '통계 데이터를 받아서 "롤러코스터처럼 빠르게 올라가고 있어요!"라고 설명해요.'
+    },
+    
+    'prediction': {
+      title: '🔮 7단계: 미래 예측 - 앞으로 어떻게 될까?',
+      principle: '예측 모델링 (Predictive Modeling)',
+      explanation: `과거의 데이터를 보고 미래를 예측하는 거예요!
+      
+예를 들어, 지난 3개월 동안 매달 2개씩 늘어났다면, 컴퓨터가 "다음 달에는 2개 더 늘어날 거야!"라고 예측하는 거예요. 마치 우리가 "오늘 비가 왔으니 내일도 올 수 있겠다"고 생각하는 것처럼요!
+
+컴퓨터가 과거의 패턴을 학습해서, 그 패턴이 계속되면 미래에 어떻게 될지 계산하는 거예요. 이렇게 미래를 예측하는 것을 "예측 모델링(Predictive Modeling)"이라고 해요.
+
+10년 후, 20년 후도 같은 방법으로 예측할 수 있어요. 하지만 시간이 길수록 정확도는 낮아질 수 있어요!
+
+💡 실생활 예시:
+- 우리가 "어제 비가 왔으니 오늘도 올 수 있겠다"고 생각하는 것처럼, 컴퓨터도 "지난 3년 동안 증가했으니 내년도 증가할 거야!"라고 예측해요.
+- ${dataExample || getFallbackExample(step, analysisResult) || '과거 10개월 데이터를 보고 다음 달 값을 예측해요.'}
+- 예를 들어, 2016년부터 2022년까지의 데이터를 보면, 컴퓨터가 "2023년에는 약 ${analysisResult?.nextVal ? Math.round(analysisResult.nextVal) : '예측값'}이 될 거야!"라고 예측해요!
+
+🎯 이 단계에서 배우는 것:
+- 어떻게 미래를 예측하는지 이해하기
+- 예측이 항상 정확한 것은 아니라는 것 알기`,
+      icon: '🔮',
+      example: dataExample || getFallbackExample(step, analysisResult) || '과거 10개월 데이터를 보고 다음 달 값을 예측해요.'
+    },
+    
+    'question-generation': {
+      title: '📚 8단계: 문제 만들기 - 맞춤 문제 만들기',
+      principle: '적응형 학습 (Adaptive Learning)',
+      explanation: `그래프를 보고 자동으로 문제를 만들어주는 거예요!
+      
+컴퓨터가 그래프를 분석해서 "이 그래프에서 가장 큰 값은 뭘까?" 또는 "이 그래프는 어떻게 변하고 있을까?"라는 문제를 만들어요. 마치 선생님이 학생 수준에 맞는 문제를 만드는 것처럼요!
+
+각 그래프마다 다른 문제가 만들어져요. 왜냐하면 그래프의 내용이 다르기 때문이에요. 이렇게 데이터에 맞춰서 문제를 자동으로 만드는 것을 "적응형 학습(Adaptive Learning)"이라고 해요.
+
+컴퓨터가 학생이 어떤 그래프를 보고 있는지 이해하고, 그에 맞는 문제를 만들어주는 거예요!`,
+      icon: '❓',
+      example: '그래프의 최대값과 최소값을 보고 문제를 자동으로 만들어요.'
+    },
+    
+    'grading': {
+      title: '✅ 9단계: 채점하기 - 자동 채점',
+      principle: '자동 평가 (Automated Assessment)',
+      explanation: `학생이 푼 문제를 자동으로 채점해주는 거예요!
+      
+컴퓨터가 정답과 학생의 답을 비교해서 "맞았어요!" 또는 "틀렸어요!"라고 알려주는 거예요. 그리고 왜 맞았는지, 왜 틀렸는지 설명도 해줘요.
+
+마치 선생님이 숙제를 채점하시는 것처럼, 컴퓨터가 빠르고 정확하게 채점해주는 거예요. 이렇게 자동으로 채점하는 것을 "자동 평가(Automated Assessment)"라고 해요.
+
+학생이 바로바로 피드백을 받을 수 있어서, 더 빨리 배울 수 있어요!`,
+      icon: '✔️',
+      example: '학생의 답과 정답을 비교해서 점수를 계산하고 해설을 제공해요.'
+    },
+    
+    'validation': {
+      title: '🔍 10단계: AI 분석 검증하기 - 판단하고 수정하기',
+      principle: '인간-AI 협업 (Human-AI Collaboration)',
+      explanation: `AI가 분석한 결과를 보고, 우리가 직접 판단해서 수정할 수 있는 거예요!
+      
+AI가 "이 데이터는 상승 추세예요!"라고 분석했는데, 우리가 그래프를 보니 "아니야, 내 생각에는 다를 수도 있겠다"고 판단할 수 있어요. 그리고 우리의 판단에 따라 수정할 수 있어요.
+
+마치 친구가 "이 문제 답이 5야!"라고 말했는데, 우리가 다시 계산해보고 "아니야, 내가 계산해보니 6이야!"라고 말하는 것처럼요.
+
+이렇게 AI의 결과를 사람이 검토하고 수정하는 것을 "인간-AI 협업(Human-AI Collaboration)"이라고 해요. AI는 도와주지만, 최종 판단은 우리가 하는 거예요!
+
+이렇게 하면 AI의 실수를 찾아낼 수 있고, 더 정확한 분석을 할 수 있어요!`,
+      icon: '🔍',
+      example: dataExample || 'AI가 분석한 트렌드를 보고, 그래프를 직접 확인해서 수정해요.'
+    }
+  };
+  
+  return explanations[step] || null;
+};
+
+/**
+ * 현재 단계에 따라 표시할 AI 원리 설명을 반환합니다.
+ */
+export const getCurrentStepExplanation = (view, analysisResult) => {
+  if (view === 'intro' || view === 'staging') {
+    return ['file-upload', 'data-parsing'];
+  } else if (view === 'extracting') {
+    return ['data-parsing'];
+  } else if (view === 'result' && analysisResult) {
+    if (analysisResult.type === 'single') {
+      return ['graph-visualization', 'trend-analysis', 'ai-explanation', 'prediction'];
+    } else {
+      return ['graph-visualization', 'trend-analysis', 'correlation-analysis', 'ai-explanation', 'prediction'];
+    }
+  }
+  return [];
+};
+
