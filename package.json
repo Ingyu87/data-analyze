@@ -1,0 +1,31 @@
+{
+  "name": "data-analyze",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "데이터 연금술사: 언리미티드 - 데이터 분석 도구",
+  "scripts": {
+    "dev": "vite",
+    "dev:vercel": "npx vercel dev",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.4",
+    "pdfjs-dist": "^3.11.174",
+    "plotly.js": "^2.27.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.0.8"
+  }
+}
