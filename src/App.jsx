@@ -7,6 +7,8 @@ import { generateAIExplanation } from './utils/aiService';
 import { getAIPrincipleExplanation } from './utils/aiPrincipleExplainer';
 import AIPrincipleAccordion from './components/AIPrincipleAccordion';
 import ReportWriter from './components/ReportWriter';
+import EthicsGuideGate from './components/EthicsGuideGate';
+import { ETHICS_GUIDE_STORAGE_KEY } from './constants/ethicsGuide';
 import {
   loadSnapshot,
   saveSnapshot,
@@ -15,6 +17,9 @@ import {
 } from './utils/sessionSnapshot';
 
 const App = () => {
+  const [ethicsAccepted, setEthicsAccepted] = useState(
+    () => sessionStorage.getItem(ETHICS_GUIDE_STORAGE_KEY) === 'true'
+  );
   const persistedInit = useMemo(() => loadSnapshot() ?? defaultPersistedState(), []);
 
   const [data, setData] = useState(persistedInit.data);
@@ -226,6 +231,10 @@ const App = () => {
       'data-parsing': false
     });
   };
+
+  if (!ethicsAccepted) {
+    return <EthicsGuideGate onAccept={() => setEthicsAccepted(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
