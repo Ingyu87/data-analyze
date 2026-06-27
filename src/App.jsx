@@ -9,6 +9,7 @@ import AIPrincipleAccordion from './components/AIPrincipleAccordion';
 import ReportWriter from './components/ReportWriter';
 import EthicsGuideGate from './components/EthicsGuideGate';
 import { ETHICS_GUIDE_STORAGE_KEY } from './constants/ethicsGuide';
+import Footer from './components/Footer';
 import {
   loadSnapshot,
   saveSnapshot,
@@ -880,6 +881,7 @@ const App = () => {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 };

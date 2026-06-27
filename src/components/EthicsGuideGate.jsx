@@ -4,6 +4,7 @@ import {
   ETHICS_GUIDES,
   ETHICS_GUIDE_STORAGE_KEY,
 } from '../constants/ethicsGuide';
+import Footer from './Footer';
 
 const CoreValueBadge = ({ value }) => {
   const colors = CORE_VALUE_COLORS[value];
@@ -49,9 +50,9 @@ const EthicsGuideGate = ({ onAccept }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 md:p-8 flex items-start justify-center">
-      <div className="w-full max-w-5xl">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-orange-200">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 md:p-8 flex flex-col justify-between items-center">
+      <div className="w-full max-w-5xl flex-grow flex items-start justify-center my-4">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-orange-200 w-full">
           {/* 헤더 */}
           <div className="bg-orange-500 px-6 py-5 text-center">
             <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
@@ -139,6 +140,7 @@ const EthicsGuideGate = ({ onAccept }) => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
